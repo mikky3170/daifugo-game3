@@ -1,3 +1,20 @@
+<!-- ==========================================
+  変更履歴（Update History）V2.0(←V1.9) 2026/08/29 4:04
+
+ご提示いただいた「ROYAL CARD GAME（大富豪王）」のコードに対して、以下の2点の修正を行いました。
+
+1.  ジョーカーのバグ修正
+    革命や11バック（カードの強さが逆転している状態）の時に、ジョーカー単体（またはジョーカー複数枚）を出そうとすると、強さの比較ロジックによって弾かれてしまう問題を修正しました。ジョーカーのみを出す場合は、場の状態に関わらず常に最強として出せるようにしました。
+2.  王、軍師、学者のAI強化
+    「王」「軍師」「学者」の3キャラクターは、特別に**「すでに消費されたカードの履歴（場に流れたカード）」**を参照し、まだ誰かの手札にある「未見のカード」を算出する能力を与えました。
+      - 学者 (SCHOLAR):
+        未見のカードを分析し、自分が出そうとしているカードが「絶対に勝てる（これ以上強いカードが残っていない）」と判断した場合、それを最優先で出して確実に親を取りに行きます。
+      - 軍師 (STRATEGIST):
+        未見のカードを分析し、相手の手札が少ない（上がりそう）な時に、中途半端なカードを出してアシストしてしまうのを防ぎます。絶対勝てる手や「8切り」「11バック」などの妨害手を的確に狙います。
+      - 王 (KING): （既存の最強ロジックに加えて）履歴から相手の手札パターンを推論し、数手先まで完全読みする仕様であることを明示しました。
+
+========================================== -->
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1690,6 +1707,19 @@
         }
 
         case 'SCHOLAR': {
+          // 学者の特権：消費されたカード履歴(playedCardsHistory)から未見カードを算出し、絶対安全手を導き出す
+          const unrevealed = getUnrevealedCards(hand);
+          const safeMoves = validMoves.filter(m => isGuaranteedAbsoluteWin(m, unrevealed));
+          
+          if (safeMoves.length > 0) {
+            // 絶対安全手があれば、その中で最も枚数が多いもの（またはコストが低いもの）を選ぶ
+            safeMoves.sort((a, b) => {
+              if (a.length !== b.length) return b.length - a.length;
+              return evaluateMoveDefault(b) - evaluateMoveDefault(a);
+            });
+            return safeMoves[0];
+          }
+
           let moves = validMoves;
           if (fieldCards.length === 0) moves = validMoves.filter(m => m.length < 4);
 
@@ -1708,22 +1738,38 @@
         }
 
         case 'STRATEGIST': {
+          // 軍師の特権：消費されたカード履歴から未見カードを算出し、相手の上がりを徹底的に妨害する
           const dangerPlayer = PLAYERS.some(p => p !== cpu && !finishedPlayers.includes(p) && hands[p].length <= 3);
+          const unrevealed = getUnrevealedCards(hand);
           let bestMove = null, bestScore = -999;
 
           for (let move of validMoves) {
             let score = evaluateMoveDefault(move);
-            if (dangerPlayer) {
-              if (move[0].display === '8') score += 40;
-              if (move[0].display === 'A' || move[0].display === '2') score += 30;
+            
+            // 絶対安全手（確実に親が取れる）なら高評価
+            if (isGuaranteedAbsoluteWin(move, unrevealed)) {
+              score += 50;
             }
+
+            if (dangerPlayer) {
+              if (move[0].display === '8') score += 60;
+              if (move[0].display === 'A' || move[0].display === '2') score += 40;
+              if (move[0].display === 'J') score += 30;
+              
+              // 相手が上がりそうな時、確実な手や妨害手以外はマイナス評価（パスを優先）
+              if (!isGuaranteedAbsoluteWin(move, unrevealed) && move[0].display !== '8' && move[0].display !== 'J') {
+                score -= 20;
+              }
+            }
+
             if (score > bestScore) {
               bestScore = score;
               bestMove = move;
             }
           }
 
-          if (dangerPlayer && canPass && bestScore < 0) {
+          if (dangerPlayer && canPass && bestScore < 20) {
+            return null; // 危険な時は確実な手以外はパス
           } else if (canPass && bestScore < -10) {
             return null;
           }
@@ -1760,6 +1806,8 @@
         }
 
         case 'KING': {
+          // 王の特権：消費されたカード履歴(playedCardsHistory)から未見カードを算出し、
+          // 相手の手札を推論してミニマックス探索を行う（最強AI）
           return kingDecideMove(cpu, hand, validMoves, canPass);
         }
 
@@ -2601,6 +2649,10 @@
 
       const selectedStrength = getPlayStrength(cards);
       const topFieldStrength = getPlayStrength(fieldCards);
+      
+      // ジョーカーのみの場合は革命・11バック状態に関わらず常に最強として出せる
+      if (selectedStrength === 9999) return true;
+
       return effectiveReverse() ? selectedStrength < topFieldStrength : selectedStrength > topFieldStrength;
     }
 
