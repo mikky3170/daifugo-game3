@@ -1,14 +1,16 @@
 <!-- ==========================================
-  変更履歴（Update History）V2.3(←V2.2) 2026/08/29 6:50
+  変更履歴（Update History）V3.2(←V3.1) 2026/09/01 05:10
 
 ご要望いただいた3点の修正を行いました。
 
 1.  ボタンの配置変更
-      - 「パス」ボタンを「カードを出す」の右側（画面中央）に移動しました。
-      - 「リセット」ボタンを一番右側（「戦績」ボタンの右）に移動しました。
-2.  「戦績クリア」ボタンの追加
-      - 戦績画面（モーダル）の左下に、現在選択しているキャラクターの戦績データをリセットする「戦績クリア」ボタンを追加しました。
-     誤操作防止のため、クリック時に確認ダイアログが表示されます。
+      - 下部バーの左側に「自動プレイ」「倍速ボタン」を配置しました。
+      - 下部バーの右側に「戦績」「リセット」を配置しました。
+2.  スマートフォン・タブレット表示の最適化
+      - 画面幅が狭い端末では、上段中央に「カードを出す」「パス」ボタンが大きく押しやすく表示されるようにしました。
+      - その下段の左側に「自動プレイ」、右側に「戦績」「リセット」が配置される2段構えのレイアウトに変更しました。
+3.  BGM・効果音のON/OFFボタン追加
+      - 画面右上のルールボタンの横に「🔊 音声: ON」ボタンを追加しました。クリックすることでBGMと効果音を一括でミュート（OFF）にできます。
 
 ========================================== -->
 
@@ -92,7 +94,7 @@
         position: absolute;
         top: 8px;
         right: 8px;
-        max-width: 280px;
+        max-width: 320px;
       }
     }
 
@@ -100,7 +102,7 @@
       display: flex; justify-content: center; align-items: center; gap: 6px;
     }
 
-    .rules-header-btns { display: flex; gap: 6px; justify-content: center; }
+    .rules-header-btns { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
 
     .rules-list-container {
       display: none; margin-top: 6px; border-top: 1px solid rgba(212, 175, 55, 0.3); padding-top: 6px;
@@ -426,19 +428,9 @@
       backdrop-filter: blur(10px); z-index: 100; flex-shrink: 0;
     }
 
-    .left-actions { justify-self: start; display: flex; gap: 6px; }
+    .left-actions { justify-self: start; display: flex; gap: 6px; position: relative; }
     .center-actions { justify-self: center; display: flex; gap: 6px; }
-    .right-actions { justify-self: end; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; position: relative; }
-
-    @media (max-width: 768px) {
-      #bottom-bar {
-        display: flex; flex-direction: column; gap: 8px;
-      }
-      .left-actions, .center-actions, .right-actions { justify-content: center; width: 100%; }
-      .speed-controls {
-        bottom: 100%; right: auto !important; left: 50%; transform: translateX(-50%);
-      }
-    }
+    .right-actions { justify-self: end; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
     .btn {
       min-width: clamp(75px, 12vw, 115px); height: clamp(32px, 5vh, 40px);
@@ -471,7 +463,7 @@
     .speed-controls {
       position: absolute;
       bottom: calc(100% + 8px);
-      right: 0;
+      left: 0;
       display: flex;
       gap: 4px;
       background: rgba(15, 23, 36, 0.9);
@@ -495,6 +487,45 @@
       color: #000;
       font-weight: bold;
       border-color: #fff3a8;
+    }
+
+    /* スマートフォン・タブレット表示の最適化 */
+    @media (max-width: 768px) {
+      #bottom-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 8px 4px;
+        padding: 8px;
+      }
+      .center-actions {
+        grid-column: 1 / span 2;
+        grid-row: 1;
+        justify-content: center;
+        gap: 12px;
+      }
+      .center-actions .btn {
+        height: clamp(44px, 7vh, 54px) !important;
+        font-size: clamp(15px, 4vw, 18px) !important;
+        flex: 1;
+        max-width: 220px;
+        border-radius: 8px;
+      }
+      .left-actions {
+        grid-column: 1;
+        grid-row: 2;
+        justify-content: flex-start;
+      }
+      .right-actions {
+        grid-column: 2;
+        grid-row: 2;
+        justify-content: flex-end;
+      }
+      .speed-controls {
+        bottom: calc(100% + 6px);
+        left: 0;
+        transform: none;
+      }
     }
 
     .rank-badge {
@@ -698,6 +729,7 @@
     <div id="rules-panel">
       <div class="rules-header">
         <div class="rules-header-btns">
+          <button class="btn-rule-help" id="sound-toggle-btn">🔊 音声: ON</button>
           <button class="btn-rule-help" id="char-help-btn">キャラ紹介</button>
           <button class="btn-rule-help" id="rule-toggle-btn">ルール解説</button>
         </div>
@@ -950,7 +982,12 @@
   <!-- 下部操作バー -->
   <div id="bottom-bar">
     <div class="action-group left-actions">
-      <!-- 空のdivを残してグリッドレイアウトを維持 -->
+      <button class="btn" id="auto-play-btn">自動プレイ: OFF</button>
+      <div class="speed-controls" id="speed-controls" style="display: none;">
+        <button class="btn-speed active" data-speed="1">1x</button>
+        <button class="btn-speed" data-speed="2">2x</button>
+        <button class="btn-speed" data-speed="3">3x</button>
+      </div>
     </div>
     <div class="action-group center-actions">
       <button class="btn" id="play-btn">カードを出す</button>
@@ -959,12 +996,6 @@
       <button class="btn btn-gold" id="exchange-btn" style="display: none;">交換決定</button>
     </div>
     <div class="action-group right-actions">
-      <div class="speed-controls" id="speed-controls" style="display: none;">
-        <button class="btn-speed active" data-speed="1">1x</button>
-        <button class="btn-speed" data-speed="2">2x</button>
-        <button class="btn-speed" data-speed="3">3x</button>
-      </div>
-      <button class="btn" id="auto-play-btn">自動プレイ: OFF</button>
       <button class="btn" id="stats-btn">戦績</button>
       <button class="btn" id="reset-btn">リセット</button>
     </div>
@@ -984,6 +1015,7 @@
 
     let isAutoPlayMode = false; // 自動プレイモードのフラグ
     let currentSpeed = 1; // 倍速設定
+    let isSoundMuted = false; // 音声ON/OFFフラグ
 
     /* ----------------------------------------------------
      * 戦績データ管理
@@ -1177,6 +1209,7 @@
       }
 
       playSelect() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
@@ -1189,6 +1222,7 @@
       }
 
       playDeselect() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
@@ -1201,6 +1235,7 @@
       }
 
       playCardPlay() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const bufferSize = this.ctx.sampleRate * 0.1;
@@ -1220,6 +1255,7 @@
       }
 
       playPass() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const now = this.ctx.currentTime;
@@ -1235,6 +1271,7 @@
       }
 
       playSpecial() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const now = this.ctx.currentTime;
@@ -1247,6 +1284,7 @@
       }
 
       playWin() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const now = this.ctx.currentTime;
@@ -1261,6 +1299,7 @@
       }
 
       playJoker() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const now = this.ctx.currentTime;
@@ -1275,6 +1314,7 @@
       }
 
       playSpade3Return() {
+        if (isSoundMuted) return;
         this.init();
         if (this.ctx.state !== 'running') return;
         const now = this.ctx.currentTime;
@@ -1322,7 +1362,7 @@
 
         // ブラウザの自動再生制限対策：ユーザーの初回クリック時に再生を開始する
         const startBgm = () => {
-          if (this.currentTrack) {
+          if (this.currentTrack && !isSoundMuted) {
             this.audio.play().catch(e => console.log("BGM再生待機中:", e));
           }
           window.removeEventListener('click', startBgm);
@@ -1337,7 +1377,9 @@
         this.currentTrack = trackName;
         this.audio.src = this.tracks[trackName];
         this.audio.currentTime = 0;
-        this.audio.play().catch(e => console.log("BGM自動再生制限:", e));
+        if (!isSoundMuted) {
+          this.audio.play().catch(e => console.log("BGM自動再生制限:", e));
+        }
       }
 
       update(isRev, isEb) {
@@ -2138,7 +2180,6 @@
      * ==================================================================== */
 
     const KING_AI_DEBUG = false; // コンソール出力フラグ
-    const KING_TIME_BUDGET_MS = 150; // 制限時間（UIフリーズ防止）
 
     function kingLog(...args) {
       if (KING_AI_DEBUG && typeof console !== 'undefined') console.log('[王AI]', ...args);
@@ -2255,14 +2296,15 @@
       groupKeys.forEach(k => {
         if (k === '8') return;
         const cost = COST_TABLE[k];
-        const isStrong = reverse ? cost <= 4 : cost >= 12; // 革命時は弱カードが制圧力を持つ
-        if (isStrong) controlCards++;
+        const isStrong = reverse ? cost <= 5 : cost >= 11; // 革命時は3,4,5。通常時はJ,Q,K,A,2
+        if (isStrong) controlCards += groups[k];
       });
       
       controlCards += jokerCount;
       
       if (turns === 1) return 1; // 1ターンで上がれる場合は1
       
+      // 弱いカードのグループ数を返す（最低1）
       return Math.max(1, turns - controlCards);
     }
 
@@ -2275,13 +2317,19 @@
       const cost = COST_TABLE[disp];
       const effCost = reverse ? (14 - cost) : cost;
       
-      // 弱いカードから優先的に消化させるためのベーススコア（強カードの無駄撃ち防止）
+      // 弱いカードから優先的に消化させるためのベーススコア
       score -= effCost; 
       
       if (disp === '8') score += 50; 
       if (disp === 'J') score += 40; 
       if (move.length >= 4) score += 60; // 革命
       score += move.length * 10; 
+      
+      // ペア崩しペナルティ（手札にある同数カードより少ない枚数で出す場合）
+      const originalCount = hand.filter(c => (c.isJoker ? 'JOKER' : c.display) === disp).length;
+      if (move.length < originalCount && move.length === 1) {
+        score -= 30; // ペアやトリプルを崩して単発で出すのはマイナス
+      }
       
       if (move.length === hand.length) score += 10000; // 上がれる手は絶対優先
       
@@ -2357,13 +2405,17 @@
       const reverse = effectiveReverse();
       
       const myTurns = estimateTurnsToWin(kingHand, reverse);
-      score -= myTurns * 1000; // 最短手数を強力に評価
-      score -= kingHand.length * 20;
+      score -= myTurns * 2000; // 最短手数をさらに強力に評価 (1000 -> 2000)
+      score -= kingHand.length * 10;
 
-      // 手役維持の評価
+      // 手役維持の評価（ペア崩しを防ぐ）
       const rankCounts = {};
       kingHand.forEach(c => { const k = c.isJoker ? 'JOKER' : c.display; rankCounts[k] = (rankCounts[k] || 0) + 1; });
-      Object.values(rankCounts).forEach(cnt => { if (cnt >= 2) score += cnt * 15; });
+      Object.values(rankCounts).forEach(cnt => { 
+        if (cnt === 2) score += 30; 
+        if (cnt === 3) score += 60;
+        if (cnt >= 4) score += 100;
+      });
 
       // 強カードの将来価値
       kingHand.forEach(c => {
@@ -2396,6 +2448,29 @@
 
       // 親番評価
       if (fieldCards.length === 0 && lastPlayedPlayer === kingCpu) score += 500;
+
+      // 盤面支配スコア (PDF仕様)
+      let dominanceScore = 0;
+      // 1. 支配札の保有数
+      const dominantCount = kingHand.filter(c => {
+        if (c.isJoker) return true;
+        const cost = COST_TABLE[c.display];
+        return reverse ? cost <= 4 : cost >= 12;
+      }).length;
+      dominanceScore += dominantCount * 50;
+
+      // 2. 他プレイヤーの「選択肢の少なさ」
+      PLAYERS.forEach(p => {
+        if (p === kingCpu || finishedPlayers.includes(p)) return;
+        if (hands[p].length <= 3) dominanceScore += 30;
+      });
+
+      // 3. ペアの連続出しポテンシャル
+      let pairCountForDom = 0;
+      Object.values(rankCounts).forEach(cnt => { if (cnt >= 2) pairCountForDom++; });
+      if (pairCountForDom >= 2) dominanceScore += 40;
+
+      score += dominanceScore;
 
       return score;
     }
@@ -2591,39 +2666,102 @@
       const minEnemyHand = activeOthers.length > 0 ? Math.min(...activeOthers.map(p => hands[p].length)) : 99;
       const isEndgame = hand.length <= 4 || minEnemyHand <= 3;
       const dangerPlayer = minEnemyHand <= 3;
+      const reverse = effectiveReverse();
 
-      // 条件1: ジョーカーは親で単発使用しない
+      // 探索時間の動的延長 (PDF仕様)
+      const totalActive = activeOthers.length + 1;
+      let timeBudget = 200;
+      if (totalActive === 2) timeBudget = 400; // 1対1は念入りに
+      else if (totalActive === 3) timeBudget = 300; // 3人以下は深掘り
+
+      // 手札の強カードと弱カードのバランスを計算（勝ち確モードの判定）
+      let strongCount = 0;
+      let weakGroupCount = 0;
+      const groups = {};
+      hand.forEach(c => {
+        if (c.isJoker) { strongCount++; return; }
+        groups[c.display] = (groups[c.display] || 0) + 1;
+      });
+      for (let k in groups) {
+        if (k === '8') { strongCount++; continue; }
+        const cost = COST_TABLE[k];
+        const isStrong = reverse ? cost <= 4 : cost >= 12; // A, 2
+        if (isStrong) strongCount += groups[k];
+        else weakGroupCount++;
+      }
+      
+      // 最大期待値エンジン (PDF仕様)
+      let winTurns = 999;
+      const dominantCards = hand.filter(c => {
+        if (c.isJoker) return true;
+        const cost = COST_TABLE[c.display];
+        return reverse ? cost <= 4 : cost >= 12;
+      });
+      const pairCount = Object.values(groups).filter(cnt => cnt >= 2).length;
+      const weakPlayersCount = activeOthers.filter(p => hands[p].length <= 5).length;
+
+      if (dominantCards.length >= 3) winTurns = 1; // ほぼ確定
+      else if (pairCount >= 2 && hand.length <= 6) winTurns = 2;
+      else if (weakPlayersCount >= 3) winTurns = 3; // チャンス局面
+
+      if (weakGroupCount <= strongCount) winTurns = Math.min(winTurns, 2);
+      if (isEndgame) winTurns = Math.min(winTurns, 2);
+
+      const isWinningMode = (winTurns <= 2);
+
+      // 条件1: 親番での無駄な強カード消費を防ぐ
       if (fieldCards.length === 0) {
-        validMoves = validMoves.filter(m => !(m.length === 1 && m[0].isJoker));
+        const safeMoves = validMoves.filter(m => {
+          if (m.length === hand.length) return true; // そのまま上がれるならOK
+          if (m.length === 1) {
+            const disp = m[0].isJoker ? 'JOKER' : m[0].display;
+            const cost = COST_TABLE[disp];
+            const isStrong = reverse ? cost <= 4 : cost >= 12;
+            if (isStrong || disp === 'JOKER') return false; // 親番でいきなり単発の強カードは出さない
+          }
+          return true;
+        });
+        if (safeMoves.length > 0) validMoves = safeMoves;
       }
 
       // 条件6: 革命は革命後の自己評価が上がる時のみ行う
       validMoves = validMoves.filter(m => {
         if (m.length >= 4) {
-          const turnsNow = estimateTurnsToWin(hand, effectiveReverse());
-          const turnsAfterRev = estimateTurnsToWin(hand, !effectiveReverse());
+          const turnsNow = estimateTurnsToWin(hand, reverse);
+          const turnsAfterRev = estimateTurnsToWin(hand, !reverse);
           return turnsAfterRev <= turnsNow;
         }
         return true;
       });
 
-      // 条件2: A、2、ジョーカーは終盤まで温存する
-      if (!isEndgame) {
-        const noStrongMoves = validMoves.filter(m => !m.some(c => c.isJoker || c.display === '2' || c.display === 'A'));
+      // 条件2: 勝ち確モードでないなら、強カードを温存する
+      if (!isWinningMode && fieldCards.length > 0) {
+        const noStrongMoves = validMoves.filter(m => {
+          return !m.some(c => {
+            if (c.isJoker) return true;
+            const cost = COST_TABLE[c.display];
+            return reverse ? cost <= 4 : cost >= 12;
+          });
+        });
         if (noStrongMoves.length > 0) {
           validMoves = noStrongMoves;
         } else if (canPass) {
-          validMoves = []; // 強いカードしか出せないがパスできるならパスを優先
+          validMoves = []; // 強いカードしか出せないが、まだ勝ち確でないならパスして温存
         }
       }
 
+      const myTurns = estimateTurnsToWin(hand, reverse);
+
       // 条件5: 相手の残り手札が3枚以下なら妨害を最優先する
       if (dangerPlayer && fieldCards.length > 0) {
-        const interruptMoves = validMoves.filter(m => m.some(c => c.display === '8' || c.display === 'A' || c.display === '2' || c.isJoker));
-        if (interruptMoves.length > 0) {
-          validMoves = interruptMoves;
-        } else if (canPass) {
-          validMoves = []; // 妨害できないならパスしてアシストを防ぐ
+        // 自分がすぐ上がれるなら妨害より上がりを優先
+        if (myTurns > 1) {
+          const interruptMoves = validMoves.filter(m => m.some(c => c.display === '8' || c.display === 'A' || c.display === '2' || c.isJoker));
+          if (interruptMoves.length > 0) {
+            validMoves = interruptMoves;
+          } else if (canPass) {
+            validMoves = []; // 妨害できないならパスしてアシストを防ぐ
+          }
         }
       }
 
@@ -2636,7 +2774,6 @@
         if (winMove && validMoves.includes(winMove)) return winMove;
       }
       
-      const myTurns = estimateTurnsToWin(hand, effectiveReverse());
       if (strongMoves.length > 0 && myTurns <= 2) {
         // 残り手数が少なく、絶対勝てる手があれば優先的に出して親を取る
         strongMoves.sort((a, b) => b.length - a.length);
@@ -2667,7 +2804,6 @@
 
       // ルート候補手の絞り込み
       const rootBranchLimit = 10;
-      const reverse = effectiveReverse();
       const scoredRoot = validMoves.map(m => ({ m, s: kingHeuristicMoveScore(m, hand, reverse) }));
       scoredRoot.sort((a, b) => b.s - a.s);
       
@@ -2697,12 +2833,12 @@
       let bestBlended = -Infinity;
 
       for (const move of candidateMoves) {
-        if (nodeCounter.timeout || (performance.now() - startTime) > KING_TIME_BUDGET_MS) break;
+        if (nodeCounter.timeout || (performance.now() - startTime) > timeBudget) break;
 
         let total = 0, worst = Infinity, evaluated = 0;
 
         for (const world of worlds) {
-          if (nodeCounter.timeout || (performance.now() - startTime) > KING_TIME_BUDGET_MS) break;
+          if (nodeCounter.timeout || (performance.now() - startTime) > timeBudget) break;
 
           const savedHands = {};
           activeOthers.forEach(p => { savedHands[p] = hands[p]; hands[p] = world[p]; });
@@ -2712,7 +2848,7 @@
           else { undo = simDoMove(cpu, move); wasEightGiri = move[0].display === '8'; }
 
           const turnInfo = simAdvanceTurn(kingIdx, wasEightGiri);
-          const val = kingMinimax(cpu, turnInfo.nextIdx, searchDepth - 1, -Infinity, Infinity, startTime, KING_TIME_BUDGET_MS, nodeCounter);
+          const val = kingMinimax(cpu, turnInfo.nextIdx, searchDepth - 1, -Infinity, Infinity, startTime, timeBudget, nodeCounter);
           simUnadvanceTurn(turnInfo);
           if (move === null) simUndoPass(undo); else simUndoMove(undo);
 
@@ -2904,7 +3040,7 @@
     }
 
     function proceedToExchange() {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       isPreExchangePhase = false; isExchangePhase = true;
 
       let daifugo = null, fugo = null, hinmin = null, daihinmin = null;
@@ -2975,7 +3111,7 @@
         setMessage(`カードを正しく${requiredExchangeCount}枚選択してください。`);
         return;
       }
-      soundMgr.playCardPlay();
+      if (!isSoundMuted) soundMgr.playCardPlay();
       let targetPlayer = (previousRanks['player'] === '大富豪') ? 
         PLAYERS.find(p => previousRanks[p] === '大貧民') : PLAYERS.find(p => previousRanks[p] === '貧民');
 
@@ -3056,7 +3192,7 @@
 
       if (selPos > -1) {
         selectedIndices.splice(selPos, 1);
-        soundMgr.playDeselect();
+        if (!isSoundMuted) soundMgr.playDeselect();
         if (cardEls[index]) cardEls[index].classList.remove('selected');
       } else {
         if (isExchangePhase && selectedIndices.length >= requiredExchangeCount) {
@@ -3064,7 +3200,7 @@
           if (cardEls[removedIndex]) cardEls[removedIndex].classList.remove('selected');
         }
         selectedIndices.push(index);
-        soundMgr.playSelect();
+        if (!isSoundMuted) soundMgr.playSelect();
         if (cardEls[index]) cardEls[index].classList.add('selected');
       }
       updateControlsOnly();
@@ -3087,11 +3223,14 @@
 
     function playerPass() {
       if (isProcessing || PLAYERS[currentTurnIndex] !== 'player') return;
-      selectedIndices = []; soundMgr.playPass(); processPass('player');
+      selectedIndices = []; 
+      if (!isSoundMuted) soundMgr.playPass(); 
+      processPass('player');
     }
 
     function animateCardMovement(player, indices, cardsToPlay, callback) {
-      isProcessing = true; soundMgr.playCardPlay();
+      isProcessing = true; 
+      if (!isSoundMuted) soundMgr.playCardPlay();
       const speedMult = getSpeedMultiplier();
       const targetRect = document.getElementById('field-container-el').getBoundingClientRect();
       let originRects = [];
@@ -3161,11 +3300,11 @@
       if (isSpade3Return) {
         actionText += ` スペード3返し発動！ジョーカーを打ち破った！`;
         hasSpecial = true; specialEventType = 'STRONG';
-        soundMgr.playSpade3Return();
+        if (!isSoundMuted) soundMgr.playSpade3Return();
       } else if (isJokerSolo) {
         actionText += ` ジョーカー、絶対強者の一枚！`;
         hasSpecial = true; specialEventType = 'STRONG';
-        soundMgr.playJoker();
+        if (!isSoundMuted) soundMgr.playJoker();
       }
 
       if (cards.length >= 4) {
@@ -3184,7 +3323,7 @@
         if (!specialEventType) specialEventType = 'EIGHT_CUT';
       }
 
-      if (hasSpecial && !isSpade3Return && !isJokerSolo) soundMgr.playSpecial();
+      if (hasSpecial && !isSpade3Return && !isJokerSolo && !isSoundMuted) soundMgr.playSpecial();
       setMessage(actionText); updateStatusUI();
       bgmMgr.update(isRevolution, isElevenBack);
 
@@ -3193,7 +3332,8 @@
       }
 
       if (hands[player].length === 0 && !finishedPlayers.includes(player)) {
-        finishedPlayers.push(player); assignWinRank(player); soundMgr.playWin();
+        finishedPlayers.push(player); assignWinRank(player); 
+        if (!isSoundMuted) soundMgr.playWin();
         setMessage(`${charNameMap[player]}が上がり！【${playerStatusMap[player]}】確定！`);
         if (player !== 'player') {
           checkAndTriggerDialogue(player, 'WIN');
@@ -3402,7 +3542,7 @@
           });
         }
       } else {
-        soundMgr.playPass();
+        if (!isSoundMuted) soundMgr.playPass();
         processPass(cpu);
       }
     }
@@ -3595,19 +3735,29 @@
     const nextGameModal = document.getElementById('next-game-modal');
     const rulesPanel = document.getElementById('rules-panel');
 
-    const openRuleModal = () => { soundMgr.playSelect(); ruleModal.classList.add('active'); };
-    const closeRuleModal = () => { soundMgr.playDeselect(); ruleModal.classList.remove('active'); };
+    const openRuleModal = () => { if (!isSoundMuted) soundMgr.playSelect(); ruleModal.classList.add('active'); };
+    const closeRuleModal = () => { if (!isSoundMuted) soundMgr.playDeselect(); ruleModal.classList.remove('active'); };
 
-    const openCharModal = () => { soundMgr.playSelect(); charModal.classList.add('active'); };
-    const closeCharModal = () => { soundMgr.playDeselect(); charModal.classList.remove('active'); };
+    const openCharModal = () => { if (!isSoundMuted) soundMgr.playSelect(); charModal.classList.add('active'); };
+    const closeCharModal = () => { if (!isSoundMuted) soundMgr.playDeselect(); charModal.classList.remove('active'); };
 
     document.getElementById('rule-toggle-btn').addEventListener('click', () => {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       if (rulesPanel.classList.contains('open')) {
         rulesPanel.classList.remove('open');
         openRuleModal();
       } else {
         rulesPanel.classList.add('open');
+      }
+    });
+
+    // 音声ON/OFFトグル
+    document.getElementById('sound-toggle-btn').addEventListener('click', (e) => {
+      isSoundMuted = !isSoundMuted;
+      e.target.textContent = isSoundMuted ? '🔇 音声: OFF' : '🔊 音声: ON';
+      bgmMgr.audio.muted = isSoundMuted;
+      if (!isSoundMuted) {
+        soundMgr.playSelect();
       }
     });
 
@@ -3619,7 +3769,7 @@
     document.getElementById('modal-char-close-x').addEventListener('click', closeCharModal);
 
     document.getElementById('btn-keep-char').addEventListener('click', () => {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       nextGameModal.classList.remove('active');
       rulesPanel.classList.remove('open');
       resetGame(false, true);
@@ -3627,7 +3777,7 @@
     });
 
     document.getElementById('btn-change-char').addEventListener('click', () => {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       nextGameModal.classList.remove('active');
       rulesPanel.classList.remove('open');
       resetGame(true, false);
@@ -3635,29 +3785,29 @@
     });
 
     document.getElementById('reset-btn').addEventListener('click', () => {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       rulesPanel.classList.remove('open');
       resetGame(true, false);
     });
 
     // 戦績モーダル表示
     document.getElementById('stats-btn').addEventListener('click', () => {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       showStatsModal();
     });
     document.getElementById('modal-stats-close-btn').addEventListener('click', () => {
-      soundMgr.playDeselect();
+      if (!isSoundMuted) soundMgr.playDeselect();
       document.getElementById('stats-modal').classList.remove('active');
     });
     document.getElementById('modal-stats-close-x').addEventListener('click', () => {
-      soundMgr.playDeselect();
+      if (!isSoundMuted) soundMgr.playDeselect();
       document.getElementById('stats-modal').classList.remove('active');
     });
     
     // 戦績クリアボタン
     document.getElementById('modal-stats-clear-btn').addEventListener('click', () => {
       if (confirm('現在のキャラクターの戦績をリセットしますか？')) {
-        soundMgr.playSelect();
+        if (!isSoundMuted) soundMgr.playSelect();
         const charId = assignedCharacters.player.id;
         const allStats = loadStats();
         delete allStats[charId];
@@ -3669,7 +3819,7 @@
     // 倍速ボタンの処理
     document.querySelectorAll('.btn-speed').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        soundMgr.playSelect();
+        if (!isSoundMuted) soundMgr.playSelect();
         document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         currentSpeed = parseInt(e.target.getAttribute('data-speed'));
@@ -3678,7 +3828,7 @@
 
     // 自動プレイボタンのトグル処理
     document.getElementById('auto-play-btn').addEventListener('click', () => {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       isAutoPlayMode = !isAutoPlayMode;
       const autoBtn = document.getElementById('auto-play-btn');
       autoBtn.textContent = isAutoPlayMode ? '自動プレイ: ON' : '自動プレイ: OFF';
