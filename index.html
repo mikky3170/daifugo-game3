@@ -1,16 +1,28 @@
 <!-- ==========================================
-  変更履歴（Update History）V3.2(←V3.1) 2026/09/01 05:10
+  変更履歴（Update History）V3.2(←V3.1) 2026/09/01 06:50
 
-ご要望いただいた3点の修正を行いました。
+ご要望いただいたスマートフォン・タブレット向けの表示最適化を行いました。
 
-1.  ボタンの配置変更
-      - 下部バーの左側に「自動プレイ」「倍速ボタン」を配置しました。
-      - 下部バーの右側に「戦績」「リセット」を配置しました。
-2.  スマートフォン・タブレット表示の最適化
-      - 画面幅が狭い端末では、上段中央に「カードを出す」「パス」ボタンが大きく押しやすく表示されるようにしました。
-      - その下段の左側に「自動プレイ」、右側に「戦績」「リセット」が配置される2段構えのレイアウトに変更しました。
-3.  BGM・効果音のON/OFFボタン追加
-      - 画面右上のルールボタンの横に「🔊 音声: ON」ボタンを追加しました。クリックすることでBGMと効果音を一括でミュート（OFF）にできます。
+1.  「カードを出す」ボタンの文字はみ出し修正
+      - スマホ表示時のボタンのフォントサイズと余白を微調整し、文字がはみ出さずに綺麗に収まるようにしました。
+2.  場の枠の左移動
+      - スマホ・タブレット表示時に、中央の場（カードが出される枠）全体を少し左にずらし、右側のCPU3との間隔を確保しました。
+3.  コメント表示の改行対応
+      - 場の下に表示されるメッセージテキストが長くなった場合、親枠の幅に合わせて自動的に改行されるように設定し、CPU3の領域に被らないようにしました。
+
+
+========================================== -->
+
+<!-- ==========================================
+  変更履歴（Update History）V2.7(←V2.6) 2026/08/29
+
+【スマホ・タブレット表示のさらなる最適化】
+1. 「カードを出す」ボタンの文字はみ出し修正
+   - スマホ表示時のフォントサイズとパディングを微調整し、文字が枠内に収まるようにしました。
+2. 場の枠の配置調整
+   - スマホ表示時に、中央の場（フィールド）を少し左に移動させ、右側のCPU3との被りを軽減しました。
+3. メッセージテキストの改行対応
+   - 場の下のコメント（メッセージ）が長くなった際、CPU3に被らないよう自動的に改行されるように修正しました。
 
 ========================================== -->
 
@@ -321,7 +333,7 @@
       background: rgba(15, 23, 36, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 6px 24px rgba(0,0,0,0.5);
       border-radius: 8px; padding: 6px 12px;
-      width: clamp(220px, 55vw, 420px);
+      width: clamp(180px, 50vw, 420px); /* スマホ表示用に下限とvwを縮小 */
       height: calc(var(--card-height) + 12px);
       min-width: 0; min-height: 0;
       display: flex; align-items: center; justify-content: center;
@@ -337,7 +349,19 @@
     #field-cards.clear-animation { transform: translateY(-30px) scale(0.8); opacity: 0; }
     #field-cards .card { flex-shrink: 0; }
 
-    #message-text { font-size: clamp(11px, 1.8vh, 14px); color: #b0bec5; letter-spacing: 1px; min-height: 16px; font-weight: 400; margin-top: 4px; text-align: center; line-height: 1.2; }
+    #message-text { 
+      font-size: clamp(11px, 1.8vh, 14px); 
+      color: #b0bec5; 
+      letter-spacing: 1px; 
+      min-height: 16px; 
+      font-weight: 400; 
+      margin-top: 4px; 
+      text-align: center; 
+      line-height: 1.3; 
+      width: 100%; 
+      white-space: normal; 
+      word-break: break-word; 
+    }
 
     #player-area { grid-row: 3; grid-column: 1 / span 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; }
 
@@ -491,6 +515,9 @@
 
     /* スマートフォン・タブレット表示の最適化 */
     @media (max-width: 768px) {
+      #field-area {
+        transform: translateX(-10px); /* 場の枠を少し左に移動 */
+      }
       #bottom-bar {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -505,8 +532,9 @@
         gap: 12px;
       }
       .center-actions .btn {
-        height: clamp(44px, 7vh, 54px) !important;
-        font-size: clamp(15px, 4vw, 18px) !important;
+        height: clamp(40px, 6.5vh, 50px) !important; /* 高さを少し抑える */
+        font-size: clamp(13px, 3.5vw, 16px) !important; /* フォントサイズを少し小さく */
+        padding: 0 4px; /* パディングを調整 */
         flex: 1;
         max-width: 220px;
         border-radius: 8px;
@@ -1505,7 +1533,7 @@
         ENEMY_FEW: ['おや、もう残り僅かですか。警戒が必要です（笑）。', '詰めが甘いのでは？'],
         MY_FEW: ['私の勝利へのシナリオは完成しています。', '申し訳ないが勝ち上がらせていただきます。'],
         WIN: ['私の勝利です。完璧な計算通りでしたね。', 'オーホホホ！ ごめんあそばせ！'],
-        LOSE: ['これは少々計算が狂いましたな。', 'くっ、私のエレガンスが……！'],
+        LOSE: ['これは少々計算が狂いましたな。', 'くっ、私のエレENSが……！'],
         GAME_START: ['優雅なる勝負を楽しみましょう。', 'よろしくお願いいたしますね。'],
         EXCHANGE: ['素敵なカードをいただけると嬉しいのですが。', 'お互い良い取引を。'],
         NEXT_GAME: ['次のゲームも華麗に舞うとしましょう。', 'さあ、参りましょうか。']
@@ -1824,7 +1852,7 @@
     }
 
     function selectPlayerCharacter(id) {
-      soundMgr.playSelect();
+      if (!isSoundMuted) soundMgr.playSelect();
       assignedCharacters.player = CHARACTER_DEFS[id];
       
       // モード選択の取得
