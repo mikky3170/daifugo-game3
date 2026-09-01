@@ -1,13 +1,9 @@
 <!-- ==========================================
-  変更履歴（Update History）V3.4(←V3.3) 2026/09/01 22:30
+  変更履歴（Update History）V4.0(←V3.5) 2026/09/02
 
-【UI・レイアウトの微調整】
-1. 場の枠の左移動
-   - スマホ・タブレット表示時に、中央の場をさらに左へずらしました。
-2. コメント表示の改行
-   - 場の下のメッセージテキストについて、「。」で改行されるように修正しました。
-3. ボタンの幅調整
-   - スマホ・タブレット表示時に、「カードを出す」ボタンを横長に、「パス」ボタンを横短に調整しました。
+【AIロジックの強化】
+1. 王（KING）AIの思考ルーチンを「ミニマックス法」から「ハイブリッドISMCTS（情報集合モンテカルロ木探索＋評価関数）」へ刷新。
+   - 終盤の確実な勝ち筋だけでなく、中盤での「あえてパスする」「手札を崩して親を取る」といった長期的視野に基づく人間らしい狡猾なプレイが可能になりました。
 
 ========================================== -->
 
@@ -2204,21 +2200,14 @@
       }));
     }
 
-    /* ======================================================================
-     * 王(KING) AI — 終盤特化・勝率最大化・ミニマックス＋αβ枝刈り
-     * ----------------------------------------------------------------------
-     * ・評価関数の抜本的改善: 「上がりまでの最短手数」「相手の危険度」を最優先。
-     * ・A/2/JOKERの無駄打ち防止: 単純な強さではなく「親を取る」「確実に上がれる」
-     *   など明確な戦略的優位性がある場合のみ評価を高くする。
-     * ・パスの高度化: 自分の手札を崩してまで無理に出さず、機をうかがう。
-     * ・8切り/11バック/革命: 実行後の自分と相手の有利不利を計算して使用。
-     * ・可変探索深度: 終盤や相手が少ない場合は深く読み、最適解を見つける。
-     * ==================================================================== */
+    // ======================================================================
+    // 王(KING) AI — ハイブリッドISMCTS (情報集合モンテカルロ木探索 + 評価関数)
+    // ======================================================================
 
-    const KING_AI_DEBUG = false; // コンソール出力フラグ
+    const KING_AI_DEBUG = false; // コンソール出力を有効化（検証時はtrueに）
 
     function kingLog(...args) {
-      if (KING_AI_DEBUG && typeof console !== 'undefined') console.log('[王AI]', ...args);
+      if (KING_AI_DEBUG && typeof console !== 'undefined') console.log('[王AI MCTS]', ...args);
     }
 
     function kingDescribeMove(move) {
@@ -2511,65 +2500,6 @@
       return score;
     }
 
-    // ---- ミニマックス探索（時間制限付き） ----
-
-    function kingMinimax(kingCpu, playerIdx, remainingDepth, alpha, beta, startTime, budgetMs, nodeCounter) {
-      nodeCounter.n++;
-      
-      const now = performance.now();
-      if ((nodeCounter.n & 31) === 0 && (now - startTime) > budgetMs) {
-        nodeCounter.timeout = true;
-        return kingEvaluateState(kingCpu);
-      }
-
-      const activePlayers = PLAYERS.filter(p => !finishedPlayers.includes(p));
-      if (activePlayers.length <= 1 || remainingDepth <= 0) {
-        return kingEvaluateState(kingCpu);
-      }
-
-      let idx = playerIdx, guard = 0;
-      while (finishedPlayers.includes(PLAYERS[idx]) && guard < 8) { idx = (idx + 1) % PLAYERS.length; guard++; }
-      const player = PLAYERS[idx];
-      const isMaximizing = (player === kingCpu);
-
-      const branchLimit = remainingDepth >= 7 ? 2 : (remainingDepth >= 4 ? 4 : 8);
-      const candidates = getCandidateMovesForPlayer(player, branchLimit, effectiveReverse());
-
-      let bestVal = isMaximizing ? -Infinity : Infinity;
-
-      for (const move of candidates) {
-        let undo, wasEightGiri = false;
-        if (move === null) {
-          undo = simDoPass(); applyPassCount();
-        } else {
-          undo = simDoMove(player, move);
-          wasEightGiri = move[0].display === '8';
-        }
-
-        const turnInfo = simAdvanceTurn(idx, wasEightGiri);
-        const val = kingMinimax(kingCpu, turnInfo.nextIdx, remainingDepth - 1, alpha, beta, startTime, budgetMs, nodeCounter);
-        simUnadvanceTurn(turnInfo);
-
-        if (move === null) simUndoPass(undo); else simUndoMove(undo);
-
-        if (nodeCounter.timeout) {
-          if (bestVal === Infinity || bestVal === -Infinity) bestVal = val;
-          break;
-        }
-
-        if (isMaximizing) {
-          if (val > bestVal) bestVal = val;
-          alpha = Math.max(alpha, val);
-        } else {
-          if (val < bestVal) bestVal = val;
-          beta = Math.min(beta, val);
-        }
-        if (beta <= alpha) break; 
-      }
-
-      return bestVal === Infinity || bestVal === -Infinity ? kingEvaluateState(kingCpu) : bestVal;
-    }
-
     // ---- 仮想手札（world）の生成 ----
 
     function kingPartitionWorld(unrevealed, players, handSizes, profile) {
@@ -2643,16 +2573,6 @@
       return world;
     }
 
-    function kingGenerateSampleWorlds(activeOthers, unrevealed, numWorlds) {
-      const profiles = ['balanced', 'danger_focused', 'worst_for_me', 'pair_heavy', 'balanced'];
-      const handSizes = {}; activeOthers.forEach(p => handSizes[p] = hands[p].length);
-      const worlds = [];
-      for (let i = 0; i < numWorlds; i++) {
-        worlds.push(kingPartitionWorld(unrevealed, activeOthers, handSizes, profiles[i % profiles.length]));
-      }
-      return worlds;
-    }
-
     // 絶対に負けない手（絶対安全手）を判定
     function isGuaranteedAbsoluteWin(move, unrevealed) {
       if (move.length === 1 && move[0].isJoker) return true;
@@ -2692,217 +2612,173 @@
       return null;
     }
 
+    // ---- MCTS (モンテカルロ木探索) 関連 ----
+
+    class MCTSNode {
+      constructor(move, parent, playerIdx) {
+        this.move = move;
+        this.parent = parent;
+        this.playerIdx = playerIdx;
+        this.children = [];
+        this.visits = 0;
+        this.totalScore = 0;
+        this.unexpandedMoves = null; // 展開時に初期化
+      }
+    }
+
+    function applySimMove(playerIdx, move) {
+      const player = PLAYERS[playerIdx];
+      let undo, wasEightGiri = false;
+      if (move === null) {
+        undo = simDoPass(); applyPassCount();
+      } else {
+        undo = simDoMove(player, move);
+        wasEightGiri = move[0].display === '8';
+      }
+      const turnInfo = simAdvanceTurn(playerIdx, wasEightGiri);
+      return { move, undo, turnInfo };
+    }
+
+    function revertSimMove(simData) {
+      simUnadvanceTurn(simData.turnInfo);
+      if (simData.move === null) simUndoPass(simData.undo);
+      else simUndoMove(simData.undo);
+    }
+
     // ---- 探索エントリーポイント ----
 
     function kingDecideMove(cpu, hand, validMoves, canPass) {
       const startTime = performance.now();
-
-      const totalCardsInPlay = PLAYERS.reduce((sum, p) => sum + hands[p].length, 0);
+      const kingIdx = PLAYERS.indexOf(cpu);
       const activeOthers = PLAYERS.filter(p => p !== cpu && !finishedPlayers.includes(p));
-      const minEnemyHand = activeOthers.length > 0 ? Math.min(...activeOthers.map(p => hands[p].length)) : 99;
-      const isEndgame = hand.length <= 4 || minEnemyHand <= 3;
-      const dangerPlayer = minEnemyHand <= 3;
       const reverse = effectiveReverse();
-
-      // 探索時間の動的延長 (PDF仕様)
-      const totalActive = activeOthers.length + 1;
-      let timeBudget = 200;
-      if (totalActive === 2) timeBudget = 400; // 1対1は念入りに
-      else if (totalActive === 3) timeBudget = 300; // 3人以下は深掘り
-
-      // 手札の強カードと弱カードのバランスを計算（勝ち確モードの判定）
-      let strongCount = 0;
-      let weakGroupCount = 0;
-      const groups = {};
-      hand.forEach(c => {
-        if (c.isJoker) { strongCount++; return; }
-        groups[c.display] = (groups[c.display] || 0) + 1;
-      });
-      for (let k in groups) {
-        if (k === '8') { strongCount++; continue; }
-        const cost = COST_TABLE[k];
-        const isStrong = reverse ? cost <= 4 : cost >= 12; // A, 2
-        if (isStrong) strongCount += groups[k];
-        else weakGroupCount++;
-      }
       
-      // 最大期待値エンジン (PDF仕様)
-      let winTurns = 999;
-      const dominantCards = hand.filter(c => {
-        if (c.isJoker) return true;
-        const cost = COST_TABLE[c.display];
-        return reverse ? cost <= 4 : cost >= 12;
-      });
-      const pairCount = Object.values(groups).filter(cnt => cnt >= 2).length;
-      const weakPlayersCount = activeOthers.filter(p => hands[p].length <= 5).length;
-
-      if (dominantCards.length >= 3) winTurns = 1; // ほぼ確定
-      else if (pairCount >= 2 && hand.length <= 6) winTurns = 2;
-      else if (weakPlayersCount >= 3) winTurns = 3; // チャンス局面
-
-      if (weakGroupCount <= strongCount) winTurns = Math.min(winTurns, 2);
-      if (isEndgame) winTurns = Math.min(winTurns, 2);
-
-      const isWinningMode = (winTurns <= 2);
-
-      // 条件1: 親番での無駄な強カード消費を防ぐ
-      if (fieldCards.length === 0) {
-        const safeMoves = validMoves.filter(m => {
-          if (m.length === hand.length) return true; // そのまま上がれるならOK
-          if (m.length === 1) {
-            const disp = m[0].isJoker ? 'JOKER' : m[0].display;
-            const cost = COST_TABLE[disp];
-            const isStrong = reverse ? cost <= 4 : cost >= 12;
-            if (isStrong || disp === 'JOKER') return false; // 親番でいきなり単発の強カードは出さない
-          }
-          return true;
-        });
-        if (safeMoves.length > 0) validMoves = safeMoves;
-      }
-
-      // 条件6: 革命は革命後の自己評価が上がる時のみ行う
-      validMoves = validMoves.filter(m => {
-        if (m.length >= 4) {
-          const turnsNow = estimateTurnsToWin(hand, reverse);
-          const turnsAfterRev = estimateTurnsToWin(hand, !reverse);
-          return turnsAfterRev <= turnsNow;
-        }
-        return true;
-      });
-
-      // 条件2: 勝ち確モードでないなら、強カードを温存する
-      if (!isWinningMode && fieldCards.length > 0) {
-        const noStrongMoves = validMoves.filter(m => {
-          return !m.some(c => {
-            if (c.isJoker) return true;
-            const cost = COST_TABLE[c.display];
-            return reverse ? cost <= 4 : cost >= 12;
-          });
-        });
-        if (noStrongMoves.length > 0) {
-          validMoves = noStrongMoves;
-        } else if (canPass) {
-          validMoves = []; // 強いカードしか出せないが、まだ勝ち確でないならパスして温存
-        }
-      }
-
-      const myTurns = estimateTurnsToWin(hand, reverse);
-
-      // 条件5: 相手の残り手札が3枚以下なら妨害を最優先する
-      if (dangerPlayer && fieldCards.length > 0) {
-        // 自分がすぐ上がれるなら妨害より上がりを優先
-        if (myTurns > 1) {
-          const interruptMoves = validMoves.filter(m => m.some(c => c.display === '8' || c.display === 'A' || c.display === '2' || c.isJoker));
-          if (interruptMoves.length > 0) {
-            validMoves = interruptMoves;
-          } else if (canPass) {
-            validMoves = []; // 妨害できないならパスしてアシストを防ぐ
-          }
-        }
-      }
-
-      const unrevealedForCheck = getUnrevealedCards(hand);
-      const strongMoves = validMoves.filter(m => isGuaranteedAbsoluteWin(m, unrevealedForCheck));
-      
-      // 直ちに上がれる場合は即座に出す
+      // 1. 勝ち確・即打ちの判定（既存の優秀なロジックを継承）
+      const totalCardsInPlay = PLAYERS.reduce((sum, p) => sum + hands[p].length, 0);
       if (totalCardsInPlay <= 15) {
         const winMove = findWinningMoveMinimax(cpu, hand);
         if (winMove && validMoves.includes(winMove)) return winMove;
       }
-      
-      if (strongMoves.length > 0 && myTurns <= 2) {
-        // 残り手数が少なく、絶対勝てる手があれば優先的に出して親を取る
+      const unrevealedForCheck = getUnrevealedCards(hand);
+      const strongMoves = validMoves.filter(m => isGuaranteedAbsoluteWin(m, unrevealedForCheck));
+      if (strongMoves.length > 0 && estimateTurnsToWin(hand, reverse) <= 2) {
         strongMoves.sort((a, b) => b.length - a.length);
         return strongMoves[0];
       }
-
       if (validMoves.length === 0) return null;
-
-      // ゲーム進行度に応じて探索の深さを可変
-      let searchDepth;
-      if (totalCardsInPlay > 35) searchDepth = 4;
-      else if (totalCardsInPlay > 20) searchDepth = 5;
-      else if (totalCardsInPlay > 12) searchDepth = 7;
-      else searchDepth = 9;
-
-      if (minEnemyHand <= 3) {
-        searchDepth += 2; // 誰かが上がりそうな時は深く警戒して読む
-      }
-
       if (activeOthers.length === 0) {
         validMoves.sort((a, b) => evaluateMoveDefault(b) - evaluateMoveDefault(a));
         return validMoves[0];
       }
 
-      const unrevealed = getUnrevealedCards(hand);
-      const numWorlds = totalCardsInPlay > 30 ? 2 : (totalCardsInPlay > 12 ? 3 : 5);
-      const worlds = kingGenerateSampleWorlds(activeOthers, unrevealed, numWorlds);
-
-      // ルート候補手の絞り込み
-      const rootBranchLimit = 10;
-      const scoredRoot = validMoves.map(m => ({ m, s: kingHeuristicMoveScore(m, hand, reverse) }));
-      scoredRoot.sort((a, b) => b.s - a.s);
+      // 2. MCTSの初期化
+      const timeBudget = totalCardsInPlay > 30 ? 250 : 400; // 序盤は軽く、終盤は深く考える
+      const root = new MCTSNode(null, null, kingIdx);
       
-      let candidateMoves = [];
-      let addedTypes = new Set();
-      for (const item of scoredRoot) {
-        const m = item.m;
-        const disp = m[0].isJoker ? 'JOKER' : m[0].display;
-        let type = disp + '_' + m.length;
-        if (disp === '8') type = '8_cut';
-        if (m.length >= 4) type = 'revolution';
-        if (disp === 'J') type = '11_back';
-        if (m.length === hand.length) type = 'finish';
+      // ルートの合法手をヒューリスティックで絞り込む（探索幅を抑える）
+      const rootBranchLimit = 8;
+      root.unexpandedMoves = getCandidateMovesForPlayer(cpu, rootBranchLimit, reverse);
+      if (canPass && !root.unexpandedMoves.includes(null)) root.unexpandedMoves.push(null);
+
+      const unrevealed = getUnrevealedCards(hand);
+      const handSizes = {}; activeOthers.forEach(p => handSizes[p] = hands[p].length);
+      let iterations = 0;
+
+      // 3. MCTSループ（時間切れまで回す）
+      while (performance.now() - startTime < timeBudget) {
+        iterations++;
         
-        if (!addedTypes.has(type)) {
-          candidateMoves.push(m);
-          addedTypes.add(type);
-        }
-        if (candidateMoves.length >= rootBranchLimit) break;
-      }
-      if (canPass) candidateMoves.push(null);
+        // ① 世界のサンプリング（相手の手札をランダムに仮定）
+        const world = kingPartitionWorld(unrevealed, activeOthers, handSizes, 'balanced');
+        const savedHands = {};
+        activeOthers.forEach(p => { savedHands[p] = hands[p]; hands[p] = world[p]; });
 
-      const kingIdx = PLAYERS.indexOf(cpu);
-      const nodeCounter = { n: 0, timeout: false };
+        let node = root;
+        let undoStack = [];
 
-      let bestMove = candidateMoves[0] || null;
-      let bestBlended = -Infinity;
-
-      for (const move of candidateMoves) {
-        if (nodeCounter.timeout || (performance.now() - startTime) > timeBudget) break;
-
-        let total = 0, worst = Infinity, evaluated = 0;
-
-        for (const world of worlds) {
-          if (nodeCounter.timeout || (performance.now() - startTime) > timeBudget) break;
-
-          const savedHands = {};
-          activeOthers.forEach(p => { savedHands[p] = hands[p]; hands[p] = world[p]; });
-
-          let undo, wasEightGiri = false;
-          if (move === null) { undo = simDoPass(); applyPassCount(); }
-          else { undo = simDoMove(cpu, move); wasEightGiri = move[0].display === '8'; }
-
-          const turnInfo = simAdvanceTurn(kingIdx, wasEightGiri);
-          const val = kingMinimax(cpu, turnInfo.nextIdx, searchDepth - 1, -Infinity, Infinity, startTime, timeBudget, nodeCounter);
-          simUnadvanceTurn(turnInfo);
-          if (move === null) simUndoPass(undo); else simUndoMove(undo);
-
-          // 手札を元に戻す
-          activeOthers.forEach(p => { hands[p] = savedHands[p]; });
-
-          total += val; worst = Math.min(worst, val); evaluated++;
+        // ② Selection (UCB1で有望なノードを辿る)
+        while (node.unexpandedMoves && node.unexpandedMoves.length === 0 && node.children.length > 0) {
+          let bestChild = null, bestUCB = -Infinity;
+          const C = 1.5; // 探索定数
+          for (let child of node.children) {
+            if (child.visits === 0) { bestChild = child; break; }
+            let ucb = (child.totalScore / child.visits) + C * Math.sqrt(Math.log(node.visits) / child.visits);
+            if (ucb > bestUCB) { bestUCB = ucb; bestChild = child; }
+          }
+          node = bestChild;
+          undoStack.push(applySimMove(node.parent.playerIdx, node.move));
         }
 
-        if (evaluated === 0) continue;
-        const avg = total / evaluated;
-        // 平均評価と最悪ケース評価をブレンド (最悪ケース重視で手堅く立ち回る)
-        const blended = avg * 0.3 + worst * 0.7;
+        // ③ Expansion (未展開の手を1つ展開)
+        if (node.unexpandedMoves && node.unexpandedMoves.length > 0) {
+          const move = node.unexpandedMoves.pop();
+          const simData = applySimMove(node.playerIdx, move);
+          undoStack.push(simData);
 
-        if (blended > bestBlended) { bestBlended = blended; bestMove = move; }
+          const nextPlayerIdx = simData.turnInfo.nextIdx;
+          const child = new MCTSNode(move, node, nextPlayerIdx);
+          node.children.push(child);
+          node = child;
+
+          // 子ノードの合法手を初期化
+          if (finishedPlayers.length < 3) {
+            node.unexpandedMoves = getCandidateMovesForPlayer(PLAYERS[nextPlayerIdx], 4, effectiveReverse());
+          } else {
+            node.unexpandedMoves = [];
+          }
+        }
+
+        // ④ Evaluation (Playout + 評価関数)
+        // 数手だけランダム（ヒューリスティック）に進めてから評価関数を呼ぶ
+        let depth = 0;
+        const maxDepth = 3;
+        let currPlayerIdx = node.playerIdx;
+        let playoutUndoStack = [];
+
+        while (depth < maxDepth && finishedPlayers.length < 3) {
+          const moves = getCandidateMovesForPlayer(PLAYERS[currPlayerIdx], 3, effectiveReverse());
+          if (moves.length === 0) break;
+          const move = moves[Math.floor(Math.random() * moves.length)];
+          const simData = applySimMove(currPlayerIdx, move);
+          playoutUndoStack.push(simData);
+          currPlayerIdx = simData.turnInfo.nextIdx;
+          depth++;
+        }
+
+        // 評価関数でスコアを取得し、0.0〜1.0の報酬に正規化
+        let rawScore = kingEvaluateState(cpu);
+        let reward = 1 / (1 + Math.exp(-rawScore / 5000)); // シグモイド関数で正規化
+
+        // 状態を元に戻す
+        while (playoutUndoStack.length > 0) revertSimMove(playoutUndoStack.pop());
+        while (undoStack.length > 0) revertSimMove(undoStack.pop());
+        activeOthers.forEach(p => { hands[p] = savedHands[p]; });
+
+        // ⑤ Backpropagation (結果の伝播)
+        let curr = node;
+        while (curr !== null) {
+          curr.visits++;
+          curr.totalScore += reward;
+          curr = curr.parent;
+        }
       }
 
-      kingLog('思考完了', { nodes: nodeCounter.n, timeout: nodeCounter.timeout, best: kingDescribeMove(bestMove) });
+      // 4. 最善手の選択（最も訪問回数が多い手を選ぶ）
+      let bestMove = null;
+      let maxVisits = -1;
+      let debugInfo = [];
+
+      for (let child of root.children) {
+        const winRate = ((child.totalScore / child.visits) * 100).toFixed(1);
+        debugInfo.push({ move: kingDescribeMove(child.move), visits: child.visits, winRate: `${winRate}%` });
+        if (child.visits > maxVisits) {
+          maxVisits = child.visits;
+          bestMove = child.move;
+        }
+      }
+
+      debugInfo.sort((a, b) => b.visits - a.visits);
+      kingLog(`思考完了: ${iterations}回シミュレーション`, debugInfo);
 
       if (bestMove === undefined) bestMove = null;
       if (bestMove === null && !canPass) {
