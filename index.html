@@ -1,6 +1,19 @@
+<!-- ==========================================
+  ROYAL CARD GAME - 大富豪V5.3 (Character AI Edition)
+  Update: 2026/09/03
+
+修正内容
+
+1.  スマホ時のCPU1・CPU3の階級表示：.rank-badge に white-space: nowrap;
+    を設定し、画面幅600px以下のメディアクエリでフォントサイズと文字間隔を最適化することで、「大富豪」「大貧民」が絶対に改行されないように修正しました。
+2.  タブレット時のメッセージと「あなたの番です」の重なり防止：タブレット解像度（601px〜1024px）において #field-area
+    の上部マージンとメッセージ枠の高さを微調整し、プレイヤーの「あなたの順番です」バッジと重ならずギリギリの隙間で美しく配置されるように修正しました。
+3.  個人戦績画面の天敵表示に理由を追加：天敵と判定されたキャラクターについて、対戦数・先着（敗北）回数・敗北率などのデータに基づいた明確な理由説明文を表示するように修正しました。
+
+========================================== -->
 
 <!-- ==========================================
-  ROYAL CARD GAME - 大富豪 (Character AI Edition)
+  ROYAL CARD GAME - 大富豪V5.2 (Character AI Edition)
   Update: 2026/09/02
   ・キャラ絵柄（肖像画）を拡大＆プレイヤーとCPUで完全同一サイズに統一
   ・場の枠を2行下げて中央センタリング
@@ -314,6 +327,23 @@
       margin: 0 auto;
       margin-top: clamp(14px, 2.8vh, 26px);
       gap: 2px;
+    }
+
+    /* タブレット時のメッセージとプレイヤー番表示の重なり防止 */
+    @media (min-width: 601px) and (max-width: 1024px) {
+      #field-area {
+        margin-top: clamp(4px, 1.4vh, 12px);
+        grid-template-rows: 20px calc(var(--card-height) + 8px) 30px;
+        gap: 1px;
+      }
+      #message-text {
+        height: 30px !important;
+        min-height: 30px !important;
+        font-size: clamp(10px, 1.4vh, 12px) !important;
+      }
+      #player-area .turn-badge-container {
+        margin-bottom: 0px;
+      }
     }
 
     #status-area {
@@ -689,6 +719,15 @@
     .rank-badge {
       font-size: clamp(15px, 2.5vh, 20px); color: #d4af37; letter-spacing: 1px;
       margin-top: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 600px) {
+      .rank-badge {
+        font-size: clamp(11px, 1.8vh, 14px);
+        letter-spacing: 0px;
+        white-space: nowrap;
+      }
     }
 
     .pass-count { font-size: clamp(9px, 1.4vh, 11px); color: #8c9ba5; margin-top: 1px; line-height: 1; }
@@ -1669,11 +1708,19 @@
 
         let nemesisName = 'なし';
         let maxBeat = 0;
+        let nemesisStats = null;
         for (let cid in stats.cpuStats) {
           if (stats.cpuStats[cid].beatMe > maxBeat) {
             maxBeat = stats.cpuStats[cid].beatMe;
             nemesisName = CHARACTER_DEFS[cid].name;
+            nemesisStats = stats.cpuStats[cid];
           }
+        }
+
+        let nemesisReason = 'まだあなたを脅かす対戦データがありません。';
+        if (maxBeat > 0 && nemesisStats) {
+          const beatRate = Math.round((maxBeat / nemesisStats.games) * 100);
+          nemesisReason = `あなたより上位で上がった回数が最多（対戦 ${nemesisStats.games} 戦中 ${maxBeat} 回 先着 / 敗北率 ${beatRate}%）。決定的な場面で親権や上がりを阻まれることが多い最大のライバルです。`;
         }
 
         let html = `
@@ -1701,7 +1748,8 @@
           <div>
             <div class="rule-item-title">⚔️ 天敵キャラクター</div>
             <div style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px;">
-              <div>最大の天敵: <strong style="color:#ff6b6b; font-size: 14px;">${nemesisName}</strong></div>
+              <div style="margin-bottom: 4px;">最大の天敵: <strong style="color:#ff6b6b; font-size: 14px;">${nemesisName}</strong></div>
+              <div style="font-size: 11px; color: #b0bec5; line-height: 1.4;">理由: ${nemesisReason}</div>
             </div>
           </div>
         `;
