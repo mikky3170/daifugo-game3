@@ -2200,14 +2200,17 @@
       }));
     }
 
+
     // ======================================================================
-    // 王(KING) AI — ハイブリッドISMCTS (情報集合モンテカルロ木探索 + 評価関数)
+    // 【強化版】王(KING) AI — 改善MCTS + 相手手札推論精密化
     // ======================================================================
 
-    const KING_AI_DEBUG = false; // コンソール出力を有効化（検証時はtrueに）
+    const KING_AI_ENHANCED_DEBUG = false; // コンソール出力用
 
     function kingLog(...args) {
-      if (KING_AI_DEBUG && typeof console !== 'undefined') console.log('[王AI MCTS]', ...args);
+      if (KING_AI_ENHANCED_DEBUG && typeof console !== 'undefined') {
+        console.log('[王AI強化版]', ...args);
+      }
     }
 
     function kingDescribeMove(move) {
@@ -2314,22 +2317,21 @@
       });
       
       const groupKeys = Object.keys(groups);
-      turns = groupKeys.length; // グループ数が基本のターン数
+      turns = groupKeys.length;
       
-      if (groups['8']) controlCards += groups['8']; // 8は親を取れる
+      if (groups['8']) controlCards += groups['8'];
       
       groupKeys.forEach(k => {
         if (k === '8') return;
         const cost = COST_TABLE[k];
-        const isStrong = reverse ? cost <= 5 : cost >= 11; // 革命時は3,4,5。通常時はJ,Q,K,A,2
+        const isStrong = reverse ? cost <= 5 : cost >= 11;
         if (isStrong) controlCards += groups[k];
       });
       
       controlCards += jokerCount;
       
-      if (turns === 1) return 1; // 1ターンで上がれる場合は1
+      if (turns === 1) return 1;
       
-      // 弱いカードのグループ数を返す（最低1）
       return Math.max(1, turns - controlCards);
     }
 
@@ -2342,21 +2344,19 @@
       const cost = COST_TABLE[disp];
       const effCost = reverse ? (14 - cost) : cost;
       
-      // 弱いカードから優先的に消化させるためのベーススコア
       score -= effCost; 
       
       if (disp === '8') score += 50; 
       if (disp === 'J') score += 40; 
-      if (move.length >= 4) score += 60; // 革命
+      if (move.length >= 4) score += 60;
       score += move.length * 10; 
       
-      // ペア崩しペナルティ（手札にある同数カードより少ない枚数で出す場合）
       const originalCount = hand.filter(c => (c.isJoker ? 'JOKER' : c.display) === disp).length;
       if (move.length < originalCount && move.length === 1) {
-        score -= 30; // ペアやトリプルを崩して単発で出すのはマイナス
+        score -= 30;
       }
       
-      if (move.length === hand.length) score += 10000; // 上がれる手は絶対優先
+      if (move.length === hand.length) score += 10000;
       
       return score;
     }
@@ -2365,6 +2365,12 @@
       const h = hands[player];
       const moves = getAllValidMoves(h);
       const list = [];
+      
+      const activeOthers = PLAYERS.filter(p => p !== player && !finishedPlayers.includes(p));
+      const isDangerousEndgame = activeOthers.some(p => hands[p].length <= 3);
+      const lastPlayerAlive = activeOthers.length === 1;
+      
+      const effectiveBranchLimit = (isDangerousEndgame || lastPlayerAlive) ? 999 : branchLimit;
       
       if (moves.length > 0) {
         const scored = moves.map(m => ({ m, s: kingHeuristicMoveScore(m, h, reverse) }));
@@ -2379,40 +2385,33 @@
             }
         };
 
-        // 最短で上がれる手
         const finish = scored.find(x => x.m.length === h.length);
         if(finish) addCand(finish.m, 'finish');
 
-        // 最小カード・最大カード
         addCand(scored[scored.length - 1].m, 'min');
         addCand(scored[0].m, 'max');
 
-        // 8切り
         const eight = scored.find(x => x.m[0].display === '8');
         if(eight) addCand(eight.m, '8');
 
-        // 11バック
         const eleven = scored.find(x => x.m[0].display === 'J');
         if(eleven) addCand(eleven.m, '11');
 
-        // 革命
         const rev = scored.find(x => x.m.length >= 4);
         if(rev) addCand(rev.m, 'rev');
 
-        // ペア・3枚
         const pair = scored.find(x => x.m.length === 2);
         if(pair) addCand(pair.m, 'pair');
         const triple = scored.find(x => x.m.length === 3);
         if(triple) addCand(triple.m, 'triple');
 
-        // 足りない分をスコア順で埋める
         for(const item of scored) {
-            if(list.length >= branchLimit) break;
+            if(list.length >= effectiveBranchLimit) break;
             addCand(item.m, 'fill');
         }
       }
       
-      if (fieldCards.length > 0) list.push(null); // パス
+      if (fieldCards.length > 0) list.push(null);
       if (list.length === 0) list.push(null);
       return list;
     }
@@ -2430,10 +2429,9 @@
       const reverse = effectiveReverse();
       
       const myTurns = estimateTurnsToWin(kingHand, reverse);
-      score -= myTurns * 2000; // 最短手数をさらに強力に評価 (1000 -> 2000)
+      score -= myTurns * 3000;
       score -= kingHand.length * 10;
 
-      // 手役維持の評価（ペア崩しを防ぐ）
       const rankCounts = {};
       kingHand.forEach(c => { const k = c.isJoker ? 'JOKER' : c.display; rankCounts[k] = (rankCounts[k] || 0) + 1; });
       Object.values(rankCounts).forEach(cnt => { 
@@ -2442,14 +2440,12 @@
         if (cnt >= 4) score += 100;
       });
 
-      // 強カードの将来価値
       kingHand.forEach(c => {
         const cost = COST_TABLE[c.isJoker ? 'JOKER' : c.display];
         const effCost = reverse ? (14 - cost) : cost;
         score += effCost * 3;
       });
 
-      // 相手の評価
       let enemyMinTurns = 99;
       PLAYERS.forEach(p => {
         if (p === kingCpu) return;
@@ -2465,18 +2461,18 @@
         score += eTurns * 50;
         score += cnt * 10;
         
-        // 相手が上がりそうな場合は深刻なペナルティ（上がり阻止優先）
-        if (eTurns <= 2) score -= (3 - eTurns) * 800;
-        if (cnt <= 3) score -= (4 - cnt) * 500; 
-        if (cnt === 1) score -= 3000;
+        if (eTurns === 1) score -= 5000;
+        else if (eTurns === 2) score -= 2000;
+        else if (eTurns <= 3) score -= 1000;
+        
+        if (cnt === 1) score -= 4000;
+        else if (cnt === 2) score -= 1500;
+        else if (cnt === 3) score -= 800;
       });
 
-      // 親番評価
       if (fieldCards.length === 0 && lastPlayedPlayer === kingCpu) score += 500;
 
-      // 盤面支配スコア (PDF仕様)
       let dominanceScore = 0;
-      // 1. 支配札の保有数
       const dominantCount = kingHand.filter(c => {
         if (c.isJoker) return true;
         const cost = COST_TABLE[c.display];
@@ -2484,13 +2480,11 @@
       }).length;
       dominanceScore += dominantCount * 50;
 
-      // 2. 他プレイヤーの「選択肢の少なさ」
       PLAYERS.forEach(p => {
         if (p === kingCpu || finishedPlayers.includes(p)) return;
         if (hands[p].length <= 3) dominanceScore += 30;
       });
 
-      // 3. ペアの連続出しポテンシャル
       let pairCountForDom = 0;
       Object.values(rankCounts).forEach(cnt => { if (cnt >= 2) pairCountForDom++; });
       if (pairCountForDom >= 2) dominanceScore += 40;
@@ -2505,52 +2499,49 @@
     function kingPartitionWorld(unrevealed, players, handSizes, profile) {
       const world = {};
       players.forEach(p => world[p] = []);
-      const remaining = {}; players.forEach(p => remaining[p] = handSizes[p]);
+      const remaining = {}; 
+      players.forEach(p => remaining[p] = handSizes[p]);
 
       let biasedPool = [], normalPool = [];
+      
       const mostDangerPlayer = players.reduce((a,b) => handSizes[a] < handSizes[b] ? a : b);
+      const dangerousCount = handSizes[mostDangerPlayer];
 
-      if (profile === 'danger_focused' || profile === 'worst_for_me') {
+      let dangerBiasStrength = 'normal';
+      if (dangerousCount === 1) dangerBiasStrength = 'critical';
+      else if (dangerousCount === 2) dangerBiasStrength = 'high';
+      else if (dangerousCount === 3) dangerBiasStrength = 'medium';
+
+      if (profile === 'danger_focused' || profile === 'worst_for_me' || dangerBiasStrength !== 'normal') {
         unrevealed.forEach(c => {
           const disp = c.isJoker ? 'JOKER' : c.display;
-          if (disp === '8' || disp === '2' || disp === 'A' || disp === 'JOKER') {
+          const isStrongCard = (disp === '8' || disp === 'A' || disp === '2' || disp === 'J' || disp === 'JOKER');
+          
+          if (isStrongCard) {
             biasedPool.push(c);
           } else {
             normalPool.push(c);
           }
         });
-      } else if (profile === 'pair_heavy') {
-        const groups = {};
-        unrevealed.forEach(c => {
-          const k = c.isJoker ? 'JOKER' : c.display;
-          if (!groups[k]) groups[k] = [];
-          groups[k].push(c);
-        });
-        const groupKeys = shuffle(Object.keys(groups));
-        groupKeys.forEach(k => {
-          const group = shuffle(groups[k]);
-          const candidatePlayers = shuffle(players.slice());
-          let assigned = false;
-          for (const p of candidatePlayers) {
-            if (remaining[p] >= group.length) {
-              group.forEach(c => { world[p].push(c); remaining[p]--; });
-              assigned = true;
-              break;
-            }
-          }
-          if (!assigned) normalPool.push(...group);
-        });
       } else {
         normalPool = [...unrevealed];
       }
 
-      if ((profile === 'danger_focused' || profile === 'worst_for_me') && biasedPool.length > 0) {
+      if ((profile === 'danger_focused' || profile === 'worst_for_me' || dangerBiasStrength !== 'normal') && biasedPool.length > 0) {
         biasedPool = shuffle(biasedPool);
-        for(let i = biasedPool.length - 1; i >= 0; i--) {
+        
+        const assignCount = dangerBiasStrength === 'critical' ? Math.ceil(biasedPool.length * 0.8)
+                           : dangerBiasStrength === 'high' ? Math.ceil(biasedPool.length * 0.6)
+                           : dangerBiasStrength === 'medium' ? Math.ceil(biasedPool.length * 0.4)
+                           : Math.ceil(biasedPool.length * 0.2);
+        
+        for(let i = 0; i < assignCount && biasedPool.length > 0; i++) {
+          const card = biasedPool.pop();
           if (remaining[mostDangerPlayer] > 0) {
-            world[mostDangerPlayer].push(biasedPool[i]);
+            world[mostDangerPlayer].push(card);
             remaining[mostDangerPlayer]--;
-            biasedPool.splice(i, 1);
+          } else {
+            normalPool.push(card);
           }
         }
         normalPool.push(...biasedPool);
@@ -2604,12 +2595,51 @@
       return true;
     }
 
-    function findWinningMoveMinimax(cpu, hand) {
+    function findWinningMoveEndgame(cpu, hand, depth = 0, maxDepth = 4) {
+      if (hand.length === 0) return null;
+      
       const moves = getAllValidMoves(hand);
       for (let move of moves) {
         if (move.length === hand.length) return move;
       }
-      return null;
+      
+      if (depth >= maxDepth) return null;
+      
+      let bestMove = null;
+      let bestScore = -Infinity;
+      
+      for (let move of moves) {
+        const undo = simDoMove(cpu, move);
+        const wasEightGiri = move[0].display === '8';
+        const turnInfo = simAdvanceTurn(PLAYERS.indexOf(cpu), wasEightGiri);
+        
+        let score = kingEvaluateState(cpu);
+        
+        if (turnInfo.nextIdx >= 0) {
+          const nextPlayer = PLAYERS[turnInfo.nextIdx];
+          const nextHand = hands[nextPlayer];
+          const nextMoves = getAllValidMoves(nextHand);
+          
+          for (let nextMove of nextMoves) {
+            const undo2 = simDoMove(nextPlayer, nextMove);
+            const turnInfo2 = simAdvanceTurn(turnInfo.nextIdx, nextMove[0].display === '8');
+            const opponentScore = kingEvaluateState(cpu);
+            score = Math.min(score, opponentScore);
+            simUnadvanceTurn(turnInfo2);
+            simUndoMove(undo2);
+          }
+        }
+        
+        simUnadvanceTurn(turnInfo);
+        simUndoMove(undo);
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestMove = move;
+        }
+      }
+      
+      return bestMove;
     }
 
     // ---- MCTS (モンテカルロ木探索) 関連 ----
@@ -2622,7 +2652,7 @@
         this.children = [];
         this.visits = 0;
         this.totalScore = 0;
-        this.unexpandedMoves = null; // 展開時に初期化
+        this.unexpandedMoves = null;
       }
     }
 
@@ -2653,10 +2683,17 @@
       const activeOthers = PLAYERS.filter(p => p !== cpu && !finishedPlayers.includes(p));
       const reverse = effectiveReverse();
       
-      // 1. 勝ち確・即打ちの判定（既存の優秀なロジックを継承）
       const totalCardsInPlay = PLAYERS.reduce((sum, p) => sum + hands[p].length, 0);
+      
+      const dangerPlayer = activeOthers.find(p => hands[p].length <= 3);
+      if (dangerPlayer && hands[dangerPlayer].length === 1) {
+        kingLog('【最高危機】相手が1枚残り→ミニマックス探索');
+        const urgentMove = findWinningMoveEndgame(cpu, hand, 0, 6);
+        if (urgentMove && validMoves.includes(urgentMove)) return urgentMove;
+      }
+
       if (totalCardsInPlay <= 15) {
-        const winMove = findWinningMoveMinimax(cpu, hand);
+        const winMove = findWinningMoveEndgame(cpu, hand, 0, 4);
         if (winMove && validMoves.includes(winMove)) return winMove;
       }
       const unrevealedForCheck = getUnrevealedCards(hand);
@@ -2671,35 +2708,39 @@
         return validMoves[0];
       }
 
-      // 2. MCTSの初期化
-      const timeBudget = totalCardsInPlay > 30 ? 250 : 400; // 序盤は軽く、終盤は深く考える
+      let timeBudget = 250;
+      if (dangerPlayer) {
+        timeBudget = 600;
+        kingLog(`【危機状況】CPU ${dangerPlayer} が ${hands[dangerPlayer].length}枚 - 時間予算: ${timeBudget}ms`);
+      } else if (totalCardsInPlay <= 20) {
+        timeBudget = 500;
+      }
+
       const root = new MCTSNode(null, null, kingIdx);
       
-      // ルートの合法手をヒューリスティックで絞り込む（探索幅を抑える）
       const rootBranchLimit = 8;
       root.unexpandedMoves = getCandidateMovesForPlayer(cpu, rootBranchLimit, reverse);
       if (canPass && !root.unexpandedMoves.includes(null)) root.unexpandedMoves.push(null);
 
       const unrevealed = getUnrevealedCards(hand);
-      const handSizes = {}; activeOthers.forEach(p => handSizes[p] = hands[p].length);
+      const handSizes = {}; 
+      activeOthers.forEach(p => handSizes[p] = hands[p].length);
       let iterations = 0;
 
-      // 3. MCTSループ（時間切れまで回す）
       while (performance.now() - startTime < timeBudget) {
         iterations++;
         
-        // ① 世界のサンプリング（相手の手札をランダムに仮定）
-        const world = kingPartitionWorld(unrevealed, activeOthers, handSizes, 'balanced');
+        const profile = dangerPlayer ? 'danger_focused' : 'balanced';
+        const world = kingPartitionWorld(unrevealed, activeOthers, handSizes, profile);
         const savedHands = {};
         activeOthers.forEach(p => { savedHands[p] = hands[p]; hands[p] = world[p]; });
 
         let node = root;
         let undoStack = [];
 
-        // ② Selection (UCB1で有望なノードを辿る)
         while (node.unexpandedMoves && node.unexpandedMoves.length === 0 && node.children.length > 0) {
           let bestChild = null, bestUCB = -Infinity;
-          const C = 1.5; // 探索定数
+          const C = 1.5;
           for (let child of node.children) {
             if (child.visits === 0) { bestChild = child; break; }
             let ucb = (child.totalScore / child.visits) + C * Math.sqrt(Math.log(node.visits) / child.visits);
@@ -2709,7 +2750,6 @@
           undoStack.push(applySimMove(node.parent.playerIdx, node.move));
         }
 
-        // ③ Expansion (未展開の手を1つ展開)
         if (node.unexpandedMoves && node.unexpandedMoves.length > 0) {
           const move = node.unexpandedMoves.pop();
           const simData = applySimMove(node.playerIdx, move);
@@ -2720,7 +2760,6 @@
           node.children.push(child);
           node = child;
 
-          // 子ノードの合法手を初期化
           if (finishedPlayers.length < 3) {
             node.unexpandedMoves = getCandidateMovesForPlayer(PLAYERS[nextPlayerIdx], 4, effectiveReverse());
           } else {
@@ -2728,8 +2767,6 @@
           }
         }
 
-        // ④ Evaluation (Playout + 評価関数)
-        // 数手だけランダム（ヒューリスティック）に進めてから評価関数を呼ぶ
         let depth = 0;
         const maxDepth = 3;
         let currPlayerIdx = node.playerIdx;
@@ -2745,16 +2782,13 @@
           depth++;
         }
 
-        // 評価関数でスコアを取得し、0.0〜1.0の報酬に正規化
         let rawScore = kingEvaluateState(cpu);
-        let reward = 1 / (1 + Math.exp(-rawScore / 5000)); // シグモイド関数で正規化
+        let reward = 1 / (1 + Math.exp(-rawScore / 5000));
 
-        // 状態を元に戻す
         while (playoutUndoStack.length > 0) revertSimMove(playoutUndoStack.pop());
         while (undoStack.length > 0) revertSimMove(undoStack.pop());
         activeOthers.forEach(p => { hands[p] = savedHands[p]; });
 
-        // ⑤ Backpropagation (結果の伝播)
         let curr = node;
         while (curr !== null) {
           curr.visits++;
@@ -2763,22 +2797,17 @@
         }
       }
 
-      // 4. 最善手の選択（最も訪問回数が多い手を選ぶ）
       let bestMove = null;
       let maxVisits = -1;
-      let debugInfo = [];
 
       for (let child of root.children) {
-        const winRate = ((child.totalScore / child.visits) * 100).toFixed(1);
-        debugInfo.push({ move: kingDescribeMove(child.move), visits: child.visits, winRate: `${winRate}%` });
         if (child.visits > maxVisits) {
           maxVisits = child.visits;
           bestMove = child.move;
         }
       }
 
-      debugInfo.sort((a, b) => b.visits - a.visits);
-      kingLog(`思考完了: ${iterations}回シミュレーション`, debugInfo);
+      kingLog(`MCTS完了: ${iterations}回, 最善手: ${kingDescribeMove(bestMove)}`);
 
       if (bestMove === undefined) bestMove = null;
       if (bestMove === null && !canPass) {
@@ -2787,6 +2816,8 @@
       }
       return bestMove;
     }
+
+
 
     /* ----------------------------------------------------
      * ゲーム状態・変数
