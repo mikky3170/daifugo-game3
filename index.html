@@ -2,8 +2,10 @@
 <!-- ==========================================
   ROYAL CARD GAME - 大富豪 (Character AI Edition)
   Update: 2026/09/02
-  ・場の枠の表示を2行下へ移動（配置最適化）
-  ・「勝利予想」の文字サイズを倍に拡大
+  ・キャラ絵柄（肖像画）を拡大＆プレイヤーとCPUで完全同一サイズに統一
+  ・場の枠を2行下げて中央センタリング
+  ・戦況表示の上に「勝利予想」ラベルを大きく表示
+  ・大富豪/富豪のカード交換で不要な単騎ゴミカードを的確に押し付けるロジック実装
 ========================================== -->
 
 <!DOCTYPE html>
@@ -217,7 +219,7 @@
 
     @media (max-width: 600px) {
       #game-board {
-        grid-template-columns: minmax(56px, 17vw) minmax(0, 1fr) minmax(56px, 17vw);
+        grid-template-columns: minmax(58px, 18vw) minmax(0, 1fr) minmax(58px, 18vw);
         padding: 2px 2px;
         gap: 2px;
       }
@@ -310,7 +312,7 @@
       min-height: 0;
       width: 100%;
       margin: 0 auto;
-      margin-top: clamp(14px, 2.8vh, 26px); /* 場の枠を約2行分下げる */
+      margin-top: clamp(14px, 2.8vh, 26px);
       gap: 2px;
     }
 
@@ -380,7 +382,46 @@
 
     #player-area { grid-row: 3; grid-column: 1 / span 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; }
 
-    /* 戦況メーター：文字サイズを倍にして視認性大幅アップ */
+    /* キャラクターの絵柄（肖像画）：大きく拡大 ＆ プレイヤー・CPU完全同一サイズ統一 */
+    .char-portrait {
+      width: clamp(40px, 8vh, 68px);
+      aspect-ratio: 2 / 3;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid rgba(212, 175, 55, 0.7);
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.65);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, z-index 0s;
+      position: relative;
+      background: #0d131d;
+      flex-shrink: 0;
+    }
+
+    .char-portrait.portrait-talk {
+      transform: scale(1.8);
+      z-index: 250;
+      box-shadow: 0 0 24px rgba(212, 175, 55, 0.95), 0 10px 26px rgba(0, 0, 0, 0.85);
+      border-color: #fff3a8;
+    }
+
+    #cpu1 .char-portrait.portrait-talk { transform: scale(1.8) translateX(10%); }
+    #cpu3 .char-portrait.portrait-talk { transform: scale(1.8) translateX(-10%); }
+
+    #cpu2 .char-portrait.portrait-talk {
+      transform-origin: 50% 0%;
+      transform: scale(1.8) translateY(6%);
+    }
+
+    #player-area .char-row { 
+      flex-direction: row; 
+      margin-bottom: 3px; 
+      gap: 8px; 
+      align-items: center;
+    }
+    #player-area .char-portrait { 
+      width: clamp(40px, 8vh, 68px); 
+    }
+
+    /* 戦況メーター */
     .eval-meter-container {
       position: absolute;
       top: clamp(24px, 3.8vh, 36px);
@@ -398,9 +439,9 @@
       gap: 2px;
     }
 
-    /* 「勝利予想」の文字サイズを倍に拡大 */
+    /* 「勝利予想」ラベル */
     .eval-meter-label {
-      font-size: clamp(15px, 2.4vh, 18px); /* 文字サイズ倍増 */
+      font-size: clamp(15px, 2.4vh, 18px);
       color: #fff3a8;
       letter-spacing: 1px;
       font-weight: 700;
@@ -435,7 +476,7 @@
         right: 4px;
       }
       .eval-meter-label { 
-        font-size: 14px; /* スマホでも倍サイズ相当を維持 */
+        font-size: 14px;
       }
       .eval-meter-badge {
         padding: 2px 6px;
@@ -656,37 +697,6 @@
       display: flex; flex-direction: column; align-items: center; gap: 2px;
       margin-bottom: 2px;
     }
-
-    .char-portrait {
-      width: clamp(28px, 5.5vh, 48px);
-      aspect-ratio: 2 / 3;
-      object-fit: cover;
-      border-radius: 5px;
-      border: 1px solid rgba(212, 175, 55, 0.6);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, z-index 0s;
-      position: relative;
-      background: #0d131d;
-      flex-shrink: 0;
-    }
-
-    .char-portrait.portrait-talk {
-      transform: scale(2.1);
-      z-index: 250;
-      box-shadow: 0 0 24px rgba(212, 175, 55, 0.95), 0 10px 26px rgba(0, 0, 0, 0.85);
-      border-color: #fff3a8;
-    }
-
-    #cpu1 .char-portrait.portrait-talk { transform: scale(2.1) translateX(10%); }
-    #cpu3 .char-portrait.portrait-talk { transform: scale(2.1) translateX(-10%); }
-
-    #cpu2 .char-portrait.portrait-talk {
-      transform-origin: 50% 0%;
-      transform: scale(2.1) translateY(6%);
-    }
-
-    #player-area .char-row { flex-direction: row; margin-bottom: 3px; gap: 6px; }
-    #player-area .char-portrait { width: clamp(24px, 4vh, 36px); }
 
     .char-select-overlay {
       position: fixed; inset: 0; z-index: 1000;
@@ -1161,7 +1171,7 @@
 
     <!-- プレイヤー (自分) -->
     <div class="player-box" id="player-area">
-      <!-- 戦況メーター：文字サイズを倍にした「勝利予想」ラベル付き -->
+      <!-- 戦況メーター -->
       <div class="eval-meter-container" id="eval-meter-btn" title="クリックで戦況グラフを表示">
         <div class="eval-meter-wrapper">
           <div class="eval-meter-label">勝利予想</div>
@@ -1328,6 +1338,57 @@
     }
 
     /* ----------------------------------------------------
+     * 大富豪・富豪時の「不要な単騎ゴミカード」的確選別ロジック
+     * ---------------------------------------------------- */
+    function selectExchangeCardsSmart(hand, count) {
+      const groups = {};
+      hand.forEach(c => {
+        const key = c.isJoker ? 'JOKER' : c.display;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(c);
+      });
+
+      const scoredCards = hand.map(c => {
+        let score = 0;
+        const disp = c.isJoker ? 'JOKER' : c.display;
+        const groupSize = groups[disp].length;
+        const cost = COST_TABLE[disp] || 0;
+
+        // 絶対に渡したくないカード（強カード・特殊カード・ペア以上）
+        if (c.isJoker) score -= 20000;
+        if (disp === '2') score -= 10000;
+        if (disp === 'A') score -= 5000;
+        if (disp === '8') score -= 8000; // 8切り用
+        if (disp === 'J') score -= 2000; // 11バック用
+
+        // ペアやセットを崩すのを強く嫌う
+        if (groupSize >= 4) score -= 15000; // 革命要因
+        else if (groupSize === 3) score -= 8000;  // トリオ
+        else if (groupSize === 2) score -= 4000;  // ペア
+        else if (groupSize === 1) score += 5000;  // 単騎は最優先で捨てたい！
+
+        // 単騎の中での選別
+        if (groupSize === 1) {
+          if (disp === '3') {
+            score += 2000; // 3は11バック時の最強カードなので、4~7よりは残したい
+          } else if (cost >= 2 && cost <= 6) {
+            // 4, 5, 6, 7 の単騎は最も処理に困る不要なゴミカード！最優先で押し付ける
+            score += 6000 - cost * 10;
+          } else {
+            // 9, 10, Q, K 等の単騎
+            score += 4000 - cost * 50;
+          }
+        }
+
+        return { card: c, score };
+      });
+
+      // 捨てたい順（スコア高い順）にソート
+      scoredCards.sort((a, b) => b.score - a.score);
+      return scoredCards.slice(0, count).map(x => x.card);
+    }
+
+    /* ----------------------------------------------------
      * リアルタイム戦況メーター・指数スケール勝率計算エンジン
      * ---------------------------------------------------- */
     const PLAYER_COLORS = {
@@ -1341,7 +1402,6 @@
       const activePlayers = PLAYERS.filter(p => !finishedPlayers.includes(p));
       const rates = { player: 0, cpu1: 0, cpu2: 0, cpu3: 0 };
 
-      // 既に上がっているプレイヤーがいる場合
       finishedPlayers.forEach((p, idx) => {
         if (idx === 0) rates[p] = 100;
         else rates[p] = 0;
@@ -1368,7 +1428,6 @@
         // 指数関数的スコア：手札が減るほど爆発的にスコアが跳ね上がる
         let score = Math.pow(15 / Math.max(1, hCount), 2.5) * 15 + Math.pow(10 / Math.max(1, turns), 2.3) * 20;
 
-        // 手札内の決定力カード配分
         hand.forEach(c => {
           if (c.isJoker) score += (hCount <= 5 ? 120 : 40);
           else if (c.display === '8') score += (hCount <= 5 ? 90 : 30);
@@ -1377,18 +1436,15 @@
           else if (c.display === '3') score += rev ? (hCount <= 5 ? 70 : 25) : 10;
         });
 
-        // 残り枚数に応じた強烈なボーナス
         if (hCount === 1) score *= 3.0;
         else if (hCount === 2) score *= 2.0;
         else if (hCount === 3) score *= 1.5;
 
-        // 親権（場がクリアされているか自分が直前に出した）
         if (fieldCards.length === 0 && lastPlayedPlayer === p) score *= 1.25;
 
         rawScores[p] = Math.max(5, score);
       });
 
-      // 確率正規化（合計100%）
       let totalRaw = 0;
       activePlayers.forEach(p => totalRaw += rawScores[p]);
 
@@ -1405,7 +1461,6 @@
       const secondPct = sortedByRate.length > 1 ? sortedByRate[1].pct : 0;
       const diffFromSecond = topPct - secondPct;
 
-      // 100%合計調整
       let sum = 0;
       activePlayers.forEach(p => sum += rates[p]);
       if (sum !== 100 && activePlayers.length > 0) {
@@ -1431,7 +1486,6 @@
         summaryText.textContent = `勝者: ${pName}`;
         summaryPct.textContent = `100%`;
       } else if (diffFromSecond >= 5) {
-        // 5%以上の差がついたらそのキャラ名と勝率を表示
         summaryText.textContent = `${icon} ${pName}`;
         summaryPct.textContent = `${topPct}%`;
       } else {
@@ -1439,7 +1493,6 @@
         summaryPct.textContent = `${topPct}%`;
       }
 
-      // ミニバー更新
       miniBar.innerHTML = `
         <div class="eval-meter-bar-fill" style="background:${PLAYER_COLORS.player}; width:${rates.player}%;"></div>
         <div class="eval-meter-bar-fill" style="background:${PLAYER_COLORS.cpu1}; width:${rates.cpu1}%;"></div>
@@ -3399,11 +3452,8 @@
 
     function autoSelectExchangeCards(player, count) {
       isProcessing = true;
-      const sortedHand = [...hands[player]].sort((a, b) => a.strength - b.strength);
-      selectedIndices = [];
-      for(let i=0; i<count; i++) {
-        selectedIndices.push(hands[player].indexOf(sortedHand[i]));
-      }
+      const selectedCards = selectExchangeCardsSmart(hands[player], count);
+      selectedIndices = selectedCards.map(c => hands[player].indexOf(c));
       render(true);
       setTimeout(() => {
         isProcessing = false;
@@ -3440,16 +3490,24 @@
       }
 
       if (daifugo && daifugo !== 'player') {
-        hands[daifugo].sort((a, b) => a.strength - b.strength);
-        hands[daihinmin].push(...hands[daifugo].splice(0, 2));
+        const discardCards = selectExchangeCardsSmart(hands[daifugo], 2);
+        discardCards.forEach(c => {
+          const idx = hands[daifugo].indexOf(c);
+          if (idx > -1) hands[daifugo].splice(idx, 1);
+        });
+        hands[daihinmin].push(...discardCards);
         sortHand(hands[daihinmin]);
         checkAndTriggerDialogue(daifugo, 'EXCHANGE');
       }
 
       if (fugo && fugo !== 'player') {
-        hands[fugo].sort((a, b) => a.strength - b.strength);
-        hands[hinmin].push(...hands[fugo].splice(0, 1));
-        sortHand(hands[fugo]);
+        const discardCards = selectExchangeCardsSmart(hands[fugo], 1);
+        discardCards.forEach(c => {
+          const idx = hands[fugo].indexOf(c);
+          if (idx > -1) hands[fugo].splice(idx, 1);
+        });
+        hands[hinmin].push(...discardCards);
+        sortHand(hands[hinmin]);
         checkAndTriggerDialogue(fugo, 'EXCHANGE');
       }
 
