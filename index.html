@@ -1,10 +1,9 @@
+
 <!-- ==========================================
-  変更履歴（Update History）V4.0(←V3.5) 2026/09/02
-
-【AIロジックの強化】
-1. 王（KING）AIの思考ルーチンを「ミニマックス法」から「ハイブリッドISMCTS（情報集合モンテカルロ木探索＋評価関数）」へ刷新。
-   - 終盤の確実な勝ち筋だけでなく、中盤での「あえてパスする」「手札を崩して親を取る」といった長期的視野に基づく人間らしい狡猾なプレイが可能になりました。
-
+  ROYAL CARD GAME - 大富豪 (Character AI Edition)
+  Update: 2026/09/02
+  ・場の枠の表示を2行下へ移動（配置最適化）
+  ・「勝利予想」の文字サイズを倍に拡大
 ========================================== -->
 
 <!DOCTYPE html>
@@ -23,14 +22,18 @@
     }
 
     @media (max-width: 900px) { :root { --card-height: clamp(45px, 11vh, 95px); } }
-    @media (max-width: 600px) { :root { --card-height: clamp(40px, 9.5vh, 75px); } }
+    @media (max-width: 600px) { 
+      :root { 
+        --card-height: clamp(38px, 9vh, 70px); 
+      } 
+    }
 
     @media (max-height: 850px) {
       #header-area { padding-top: 4px !important; }
       .main-title { font-size: clamp(16px, 2.8vh, 26px) !important; }
       #bottom-bar { padding: 6px 10px !important; }
       .btn { height: clamp(30px, 5vh, 38px) !important; font-size: 13px !important; min-width: 75px !important; }
-      #status-area { min-height: 20px !important; margin-bottom: 2px !important; }
+      #status-area { min-height: 18px !important; margin-bottom: 2px !important; }
       .status-badge { font-size: 15px !important; }
       #rules-panel { padding: 4px 6px !important; }
       .rules-list { font-size: 11px !important; }
@@ -134,7 +137,7 @@
 
     .modal-content {
       background: #151d2a; border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 12px;
-      width: 90%; max-width: 520px; padding: 18px;
+      width: 90%; max-width: 540px; padding: 18px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(212, 175, 55, 0.15);
       transform: translateY(-20px); transition: transform 0.3s ease;
     }
@@ -150,7 +153,7 @@
     .modal-close { background: none; border: none; color: #8c9ba5; font-size: 22px; cursor: pointer; transition: color 0.2s; }
     .modal-close:hover { color: #ffffff; }
 
-    .modal-body { font-size: 13px; color: #d0d7de; line-height: 1.6; max-height: 60vh; overflow-y: auto; padding-right: 6px; }
+    .modal-body { font-size: 13px; color: #d0d7de; line-height: 1.6; max-height: 62vh; overflow-y: auto; padding-right: 6px; }
     .rule-item { margin-bottom: 12px; }
     .rule-item-title { color: #fff3a8; font-weight: bold; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
     .rule-item-title::before { content: "◆"; color: #d4af37; font-size: 10px; }
@@ -204,11 +207,20 @@
       .final-rank-name { font-size: 13px; }
     }
 
+    /* ゲーム盤面：左右完全対称 */
     #game-board {
       display: grid;
       grid-template-rows: auto minmax(0, 1fr) auto;
-      grid-template-columns: minmax(70px, 140px) minmax(0, 1fr) minmax(70px, 140px);
+      grid-template-columns: minmax(70px, 130px) 1fr minmax(70px, 130px);
       width: 100%; max-width: 1200px; flex: 1; padding: 2px 6px; position: relative; gap: 4px; min-height: 0;
+    }
+
+    @media (max-width: 600px) {
+      #game-board {
+        grid-template-columns: minmax(56px, 17vw) minmax(0, 1fr) minmax(56px, 17vw);
+        padding: 2px 2px;
+        gap: 2px;
+      }
     }
 
     .player-box {
@@ -218,20 +230,27 @@
 
     .player-box.active-turn { filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4)); }
 
+    /* キャラ名表示 */
     .char-badge {
-      font-size: clamp(18px, 3vh, 24px); color: #fff3a8;
-      background: rgba(212, 175, 55, 0.2); border: 1px solid rgba(212, 175, 55, 0.5);
-      border-radius: 6px; padding: 2px 10px; margin-bottom: 4px; font-weight: bold; white-space: nowrap;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      font-size: clamp(12px, 2vh, 16px);
+      color: #fff3a8;
+      background: rgba(212, 175, 55, 0.16);
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      border-radius: 5px;
+      padding: 1px 7px;
+      margin-bottom: 2px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     }
 
-    .turn-badge-container { height: clamp(20px, 2.8vh, 28px); display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+    .turn-badge-container { height: clamp(18px, 2.5vh, 26px); display: flex; align-items: center; justify-content: center; margin-bottom: 1px; }
 
     .turn-badge {
       visibility: hidden; opacity: 0;
       background: linear-gradient(180deg, #fff3a8 0%, #d4af37 100%); color: #0b1017;
-      font-family: 'Cinzel', serif; font-size: clamp(11px, 2vh, 14px); font-weight: bold;
-      padding: 2px 8px; border-radius: 5px; letter-spacing: 1px;
+      font-family: 'Cinzel', serif; font-size: clamp(10px, 1.8vh, 13px); font-weight: bold;
+      padding: 1px 7px; border-radius: 4px; letter-spacing: 1px;
       box-shadow: 0 0 10px rgba(212, 175, 55, 0.6); transition: opacity 0.2s ease, visibility 0.2s ease;
       z-index: 20; line-height: 1.2;
     }
@@ -245,17 +264,17 @@
     .player-box.active-turn .turn-badge { visibility: visible; opacity: 1; }
 
     #cpu2 { grid-row: 1; grid-column: 2; }
-    #cpu1 { grid-row: 2; grid-column: 1; align-items: flex-start; justify-content: center; }
-    #cpu3 { grid-row: 2; grid-column: 3; align-items: flex-end; justify-content: center; }
+    #cpu1 { grid-row: 2; grid-column: 1; align-items: center; justify-content: center; }
+    #cpu3 { grid-row: 2; grid-column: 3; align-items: center; justify-content: center; }
 
     .dialogue-bubble {
       position: absolute;
       background: rgba(15, 23, 36, 0.95);
       border: 1px solid rgba(212, 175, 55, 0.8);
       color: #fff3a8;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-size: clamp(10px, 1.6vh, 13px);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: clamp(9px, 1.5vh, 12px);
       font-weight: 600;
       white-space: nowrap;
       pointer-events: none;
@@ -274,28 +293,33 @@
     #cpu2 .dialogue-bubble { top: 100%; left: 50%; transform: translate(-50%, 6px); }
     #cpu2 .dialogue-bubble.show { transform: translate(-50%, 0); }
 
-    #cpu1 .dialogue-bubble { top: 50%; left: 100%; transform: translate(6px, -50%); }
+    #cpu1 .dialogue-bubble { top: 50%; left: 100%; transform: translate(4px, -50%); }
     #cpu1 .dialogue-bubble.show { transform: translate(0, -50%); }
 
-    #cpu3 .dialogue-bubble { top: 50%; right: 100%; transform: translate(-6px, -50%); }
+    #cpu3 .dialogue-bubble { top: 50%; right: 100%; transform: translate(-4px, -50%); }
     #cpu3 .dialogue-bubble.show { transform: translate(0, -50%); }
 
+    /* 場の固定レイアウト（2行下げて中央センタリング） */
     #field-area {
       grid-row: 2; grid-column: 2;
       display: grid;
-      grid-template-rows: clamp(22px, 2.8vh, 28px) minmax(calc(var(--card-height) + 12px), calc(var(--card-height) + 12px)) minmax(clamp(16px, 2.2vh, 20px), auto);
+      grid-template-rows: 22px calc(var(--card-height) + 10px) 36px;
       align-items: center;
       justify-items: center;
       position: relative;
       min-height: 0;
+      width: 100%;
+      margin: 0 auto;
+      margin-top: clamp(14px, 2.8vh, 26px); /* 場の枠を約2行分下げる */
+      gap: 2px;
     }
 
     #status-area {
       display: flex; gap: 8px; align-items: center; justify-content: center;
-      min-height: 0; height: 100%; margin-bottom: 0;
+      height: 22px; min-height: 22px; margin-bottom: 0;
     }
 
-    .status-badge { font-family: 'Cinzel', serif; font-size: clamp(13px, 2.5vh, 20px); font-weight: 700; letter-spacing: 1px; display: none; transition: all 0.3s ease; }
+    .status-badge { font-family: 'Cinzel', serif; font-size: clamp(12px, 2.2vh, 18px); font-weight: 700; letter-spacing: 1px; display: none; transition: all 0.3s ease; }
 
     @keyframes blink-rev {
       0%, 100% { opacity: 1; text-shadow: 0 0 15px rgba(212, 175, 55, 1), 0 0 25px rgba(255, 243, 168, 0.8); }
@@ -313,17 +337,26 @@
     .field-container {
       background: rgba(15, 23, 36, 0.6); border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 6px 24px rgba(0,0,0,0.5);
-      border-radius: 8px; padding: 6px 12px;
-      width: clamp(180px, 50vw, 420px);
-      height: calc(var(--card-height) + 12px);
+      border-radius: 8px; padding: 4px 8px;
+      width: 100%;
+      max-width: clamp(140px, 48vw, 400px);
+      height: calc(var(--card-height) + 10px);
       min-width: 0; min-height: 0;
       display: flex; align-items: center; justify-content: center;
       backdrop-filter: blur(5px); position: relative;
       overflow: hidden;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 600px) {
+      .field-container {
+        max-width: clamp(130px, 46vw, 220px);
+        padding: 2px 4px;
+      }
     }
 
     #field-cards {
-      display: flex; gap: 6px; align-items: center; justify-content: center;
+      display: flex; gap: 4px; align-items: center; justify-content: center;
       width: 100%; height: 100%;
       transition: transform 0.4s ease, opacity 0.4s ease;
     }
@@ -331,25 +364,91 @@
     #field-cards .card { flex-shrink: 0; }
 
     #message-text { 
-      font-size: clamp(11px, 1.8vh, 14px); 
+      font-size: clamp(10px, 1.6vh, 13px); 
       color: #b0bec5; 
-      letter-spacing: 1px; 
-      min-height: 16px; 
+      letter-spacing: 0.5px; 
+      height: 36px; min-height: 36px; 
       font-weight: 400; 
-      margin-top: 4px; 
+      margin-top: 1px; 
       text-align: center; 
       line-height: 1.3; 
       width: 100%; 
       white-space: normal; 
-      word-break: break-word; 
+      word-break: break-word;
+      display: flex; align-items: center; justify-content: center;
     }
 
     #player-area { grid-row: 3; grid-column: 1 / span 3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; }
 
+    /* 戦況メーター：文字サイズを倍にして視認性大幅アップ */
+    .eval-meter-container {
+      position: absolute;
+      top: clamp(24px, 3.8vh, 36px);
+      right: max(6px, calc(50% - 255px));
+      z-index: 120;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.2s;
+    }
+    .eval-meter-container:hover { transform: scale(1.05); }
+
+    .eval-meter-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    /* 「勝利予想」の文字サイズを倍に拡大 */
+    .eval-meter-label {
+      font-size: clamp(15px, 2.4vh, 18px); /* 文字サイズ倍増 */
+      color: #fff3a8;
+      letter-spacing: 1px;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 8px rgba(212,175,55,0.6);
+      padding-right: 4px;
+      line-height: 1.1;
+    }
+
+    .eval-meter-badge {
+      background: rgba(15, 23, 36, 0.94);
+      border: 1px solid rgba(212, 175, 55, 0.7);
+      border-radius: 10px;
+      padding: 3px 9px;
+      font-size: clamp(10px, 1.6vh, 12px);
+      color: #fff3a8;
+      display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+    }
+    .eval-meter-badge span.eval-pct {
+      font-weight: bold; color: #d4af37;
+    }
+    .eval-meter-bar-mini {
+      width: 32px; height: 5px; background: #25313d; border-radius: 3px; overflow: hidden; display: flex;
+    }
+    .eval-meter-bar-fill {
+      height: 100%; transition: width 0.3s ease;
+    }
+
+    @media (max-width: 600px) {
+      .eval-meter-container {
+        top: 20px;
+        right: 4px;
+      }
+      .eval-meter-label { 
+        font-size: 14px; /* スマホでも倍サイズ相当を維持 */
+      }
+      .eval-meter-badge {
+        padding: 2px 6px;
+        font-size: 10px;
+        gap: 4px;
+      }
+      .eval-meter-bar-mini { width: 24px; }
+    }
+
     .your-turn-badge {
       visibility: hidden; opacity: 0;
       background: linear-gradient(180deg, #fff3a8 0%, #d4af37 100%); color: #0b1017;
-      font-size: clamp(12px, 2.2vh, 15px); font-weight: bold; padding: 3px 12px; border-radius: 6px;
+      font-size: clamp(11px, 2vh, 14px); font-weight: bold; padding: 2px 10px; border-radius: 5px;
       letter-spacing: 1px; box-shadow: 0 0 10px rgba(212, 175, 55, 0.6); transition: opacity 0.2s ease, visibility 0.2s ease;
       z-index: 100; animation: pulse 1.5s infinite alternate; line-height: 1.2;
     }
@@ -364,7 +463,7 @@
 
     #player-area.active-turn .your-turn-badge { visibility: visible; opacity: 1; }
 
-    #player-hand { display: flex; justify-content: center; align-items: center; height: calc(var(--card-height) + 32px); margin-bottom: 2px; max-width: 100%; padding: 0 4px; }
+    #player-hand { display: flex; justify-content: center; align-items: center; height: calc(var(--card-height) + 30px); margin-bottom: 2px; max-width: 100%; padding: 0 4px; position: relative; }
 
     .card {
       width: var(--card-width); height: var(--card-height);
@@ -384,8 +483,8 @@
     @keyframes drawCard { from { transform: translateY(20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 
     .card-top { display: flex; flex-direction: column; align-items: flex-start; line-height: 0.85; }
-    .card-suit-symbol { font-size: clamp(10px, 1.8vh, 15px); }
-    .card-rank { font-size: clamp(10px, 1.8vh, 15px); font-weight: bold; }
+    .card-suit-symbol { font-size: clamp(9px, 1.6vh, 14px); }
+    .card-rank { font-size: clamp(9px, 1.6vh, 14px); font-weight: bold; }
 
     .card.spade, .card.club { color: #11161d; }
     .card.heart, .card.diamond { color: #d32f2f; }
@@ -395,16 +494,16 @@
       background: linear-gradient(135deg, #fff8e1 0%, #ffe9a8 45%, #f2f4f7 100%);
       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(212, 175, 55, 0.9);
     }
-    .card.joker .card-rank { font-size: clamp(8px, 1.4vh, 11px); letter-spacing: 0.5px; }
+    .card.joker .card-rank { font-size: clamp(7px, 1.2vh, 10px); letter-spacing: 0.5px; }
     .card.joker .card-center-icon {
       position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-size: clamp(16px, 3.4vh, 30px); opacity: 0.9;
+      font-size: clamp(14px, 3vh, 26px); opacity: 0.9;
     }
 
     #player-hand .card:hover { transform: translateY(-8px); z-index: 50 !important; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6); }
 
     #player-hand .card.selected {
-      transform: translateY(-24px) !important;
+      transform: translateY(-22px) !important;
       box-shadow: 0 0 15px rgba(212, 175, 55, 0.9), 0 12px 20px rgba(0,0,0,0.7);
       border: 1px solid #d4af37; z-index: 60 !important;
     }
@@ -496,9 +595,6 @@
 
     /* スマートフォン・タブレット表示の最適化 */
     @media (max-width: 768px) {
-      #field-area {
-        transform: translateX(-35px); /* 場の枠をさらに左に移動 */
-      }
       #bottom-bar {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -515,17 +611,17 @@
       }
       .center-actions .btn {
         height: clamp(40px, 6.5vh, 50px) !important;
-        font-size: clamp(12px, 3.2vw, 16px) !important; /* フォントサイズを微調整 */
-        letter-spacing: 0 !important; /* 文字間隔を詰める */
+        font-size: clamp(12px, 3.2vw, 16px) !important;
+        letter-spacing: 0 !important;
         padding: 0 2px;
         border-radius: 8px;
       }
       #play-btn {
-        flex: 1.6; /* カードを出すボタンを長く */
+        flex: 1.6;
         max-width: 200px;
       }
       #pass-btn {
-        flex: 0.8; /* パスボタンを短く */
+        flex: 0.8;
         max-width: 120px;
       }
       #go-exchange-btn, #exchange-btn {
@@ -550,19 +646,19 @@
     }
 
     .rank-badge {
-      font-size: clamp(17px, 3vh, 23px); color: #d4af37; letter-spacing: 1px;
-      margin-top: 2px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1;
+      font-size: clamp(15px, 2.5vh, 20px); color: #d4af37; letter-spacing: 1px;
+      margin-top: 1px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1;
     }
 
-    .pass-count { font-size: clamp(10px, 1.6vh, 12px); color: #8c9ba5; margin-top: 2px; line-height: 1; }
+    .pass-count { font-size: clamp(9px, 1.4vh, 11px); color: #8c9ba5; margin-top: 1px; line-height: 1; }
   
     .char-row {
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-      margin-bottom: 3px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      margin-bottom: 2px;
     }
 
     .char-portrait {
-      width: clamp(30px, 6vh, 52px);
+      width: clamp(28px, 5.5vh, 48px);
       aspect-ratio: 2 / 3;
       object-fit: cover;
       border-radius: 5px;
@@ -589,8 +685,8 @@
       transform: scale(2.1) translateY(6%);
     }
 
-    #player-area .char-row { flex-direction: row; margin-bottom: 4px; }
-    #player-area .char-portrait { width: clamp(26px, 4.2vh, 38px); }
+    #player-area .char-row { flex-direction: row; margin-bottom: 3px; gap: 6px; }
+    #player-area .char-portrait { width: clamp(24px, 4vh, 36px); }
 
     .char-select-overlay {
       position: fixed; inset: 0; z-index: 1000;
@@ -705,6 +801,61 @@
     }
 
     .final-rank-name { flex: 1; text-align: left; font-weight: 600; color: #e0e6ed; font-size: 14px; }
+
+    /* モーダル内タブ切り替え */
+    .modal-tabs {
+      display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); padding-bottom: 6px;
+    }
+    .modal-tab-btn {
+      background: none; border: none; color: #8c9ba5; font-size: 13px; font-weight: bold; cursor: pointer; padding: 4px 10px; border-radius: 4px; transition: all 0.2s;
+    }
+    .modal-tab-btn.active {
+      background: rgba(212, 175, 55, 0.2); color: #fff3a8; border: 1px solid rgba(212, 175, 55, 0.5);
+    }
+
+    /* ランキングテーブルデザイン */
+    .ranking-table {
+      width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;
+    }
+    .ranking-table th {
+      color: #d4af37; padding: 6px 4px; border-bottom: 1px solid rgba(212, 175, 55, 0.4); font-weight: 600; white-space: nowrap;
+    }
+    .ranking-table td {
+      padding: 6px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); vertical-align: middle;
+    }
+    .rank-num-badge {
+      display: inline-block; width: 18px; height: 18px; text-align: center; line-height: 18px; border-radius: 50%; font-weight: bold; font-size: 10px;
+    }
+    .rank-num-1 { background: #d4af37; color: #000; }
+    .rank-num-2 { background: #b0bec5; color: #000; }
+    .rank-num-3 { background: #cd7f32; color: #000; }
+    .rank-breakdown-bar {
+      display: flex; height: 7px; border-radius: 3px; overflow: hidden; width: 100%; min-width: 60px; background: rgba(0,0,0,0.4); margin-top: 3px;
+    }
+    .rbb-df { background: #d4af37; }
+    .rbb-f  { background: #4caf50; }
+    .rbb-h  { background: #2196f3; }
+    .rbb-dh { background: #f44336; }
+
+    /* 勝率グラフモーダル用スタイル */
+    .eval-graph-card {
+      background: rgba(0,0,0,0.3); border: 1px solid rgba(212,175,55,0.2); border-radius: 8px; padding: 10px; margin-bottom: 12px;
+    }
+    .eval-player-row {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .eval-player-name {
+      width: 90px; font-size: 12px; font-weight: bold; color: #fff3a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .eval-bar-track {
+      flex: 1; height: 12px; background: #1e293b; border-radius: 6px; overflow: hidden; position: relative;
+    }
+    .eval-bar-fill-p {
+      height: 100%; border-radius: 6px; transition: width 0.4s ease;
+    }
+    .eval-player-pct {
+      width: 45px; text-align: right; font-size: 12px; font-weight: bold; color: #d4af37;
+    }
 
     .stats-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
@@ -905,19 +1056,39 @@
     </div>
   </div>
 
-  <!-- 戦績モーダル -->
+  <!-- 戦績＆総合ランキングモーダル -->
   <div class="modal-overlay" id="stats-modal">
-    <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-content" style="max-width: 620px;">
       <div class="modal-header">
-        <div class="modal-title">対戦成績 - <span id="stats-char-name"></span></div>
+        <div class="modal-title">宮廷格付け ＆ 戦績記録</div>
         <button class="modal-close" id="modal-stats-close-x">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" id="tab-all-ranking-btn">👑 キャラ総合ランキング</button>
+        <button class="modal-tab-btn" id="tab-my-stats-btn">👤 あなたの個人戦績</button>
       </div>
       <div class="modal-body" id="stats-body">
         <!-- 動的生成 -->
       </div>
       <div class="modal-footer">
-        <button class="btn-modal-danger" id="modal-stats-clear-btn" style="margin-right: auto;">戦績クリア</button>
+        <button class="btn-modal-danger" id="modal-stats-clear-btn" style="margin-right: auto;">全戦績リセット</button>
         <button class="btn-modal-close" id="modal-stats-close-btn">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 戦況分析（勝率グラフ）モーダル -->
+  <div class="modal-overlay" id="eval-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <div class="modal-title">📊 リアルタイム戦況分析</div>
+        <button class="modal-close" id="modal-eval-close-x">&times;</button>
+      </div>
+      <div class="modal-body" id="eval-modal-body">
+        <!-- 動的生成 -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-close" id="modal-eval-close-btn">閉じる</button>
       </div>
     </div>
   </div>
@@ -963,7 +1134,7 @@
       <div class="rank-badge" id="cpu1-rank"></div>
     </div>
 
-    <!-- 中央：場 -->
+    <!-- 中央：場（2行下げて完全センタリング） -->
     <div id="field-area">
       <div id="status-area">
         <div id="revolution-status" class="status-badge">Revolution!</div>
@@ -990,6 +1161,24 @@
 
     <!-- プレイヤー (自分) -->
     <div class="player-box" id="player-area">
+      <!-- 戦況メーター：文字サイズを倍にした「勝利予想」ラベル付き -->
+      <div class="eval-meter-container" id="eval-meter-btn" title="クリックで戦況グラフを表示">
+        <div class="eval-meter-wrapper">
+          <div class="eval-meter-label">勝利予想</div>
+          <div class="eval-meter-badge">
+            <span id="eval-summary-icon">📊</span>
+            <span id="eval-summary-text">互角</span>
+            <span class="eval-pct" id="eval-summary-pct"></span>
+            <div class="eval-meter-bar-mini" id="eval-mini-bar">
+              <div class="eval-meter-bar-fill" style="background:#d4af37; width:25%;"></div>
+              <div class="eval-meter-bar-fill" style="background:#4caf50; width:25%;"></div>
+              <div class="eval-meter-bar-fill" style="background:#2196f3; width:25%;"></div>
+              <div class="eval-meter-bar-fill" style="background:#e91e63; width:25%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="turn-badge-container">
         <div class="your-turn-badge" id="player-badge">あなたの順番です</div>
       </div>
@@ -1034,21 +1223,35 @@
       '9': 7, '10': 8, 'J': 9, 'Q': 10, 'K': 11, 'A': 12, '2': 13, 'JOKER': 14
     };
 
-    let isAutoPlayMode = false; // 自動プレイモードのフラグ
-    let currentSpeed = 1; // 倍速設定
-    let isSoundMuted = false; // 音声ON/OFFフラグ
+    let isAutoPlayMode = false;
+    let currentSpeed = 1;
+    let isSoundMuted = false;
+    let currentStatsTab = 'all';
 
     /* ----------------------------------------------------
-     * 戦績データ管理
+     * 戦績・ランキングデータ管理
      * ---------------------------------------------------- */
     function loadStats() {
       const data = localStorage.getItem('royalCardGameStats');
-      if (data) return JSON.parse(data);
-      return {};
+      return data ? JSON.parse(data) : {};
     }
 
     function saveStats(stats) {
       localStorage.setItem('royalCardGameStats', JSON.stringify(stats));
+    }
+
+    function loadAllCharStats() {
+      const data = localStorage.getItem('royalAllCharStats');
+      if (data) return JSON.parse(data);
+      const init = {};
+      Object.keys(CHARACTER_DEFS).forEach(id => {
+        init[id] = { games: 0, df: 0, f: 0, h: 0, dh: 0, rankSum: 0 };
+      });
+      return init;
+    }
+
+    function saveAllCharStats(stats) {
+      localStorage.setItem('royalAllCharStats', JSON.stringify(stats));
     }
 
     function getCharStats(charId) {
@@ -1068,39 +1271,45 @@
     }
 
     function updateStatsOnGameEnd() {
+      const allCharStats = loadAllCharStats();
+      PLAYERS.forEach(p => {
+        const charDef = assignedCharacters[p];
+        if (!charDef) return;
+        const cid = charDef.id;
+        if (!allCharStats[cid]) allCharStats[cid] = { games: 0, df: 0, f: 0, h: 0, dh: 0, rankSum: 0 };
+
+        const r = playerStatusMap[p];
+        allCharStats[cid].games++;
+        if (r === '大富豪') { allCharStats[cid].df++; allCharStats[cid].rankSum += 1; }
+        else if (r === '富豪') { allCharStats[cid].f++; allCharStats[cid].rankSum += 2; }
+        else if (r === '貧民') { allCharStats[cid].h++; allCharStats[cid].rankSum += 3; }
+        else if (r === '大貧民') { allCharStats[cid].dh++; allCharStats[cid].rankSum += 4; }
+      });
+      saveAllCharStats(allCharStats);
+
       if (!assignedCharacters.player) return;
       const charId = assignedCharacters.player.id;
       const allStats = loadStats();
       const stats = getCharStats(charId);
 
       stats.totalGames++;
-      
       const myRank = playerStatusMap['player'];
-      if (stats.rankCounts[myRank] !== undefined) {
-        stats.rankCounts[myRank]++;
-      }
+      if (stats.rankCounts[myRank] !== undefined) stats.rankCounts[myRank]++;
 
       const rankValues = { '大富豪': 1, '富豪': 2, '貧民': 3, '大貧民': 4 };
       const myRankVal = rankValues[myRank] || 4;
       stats.totalRankSum += myRankVal;
 
-      if (previousRanks['player'] === '大貧民' && myRank === '大富豪') {
-        stats.gekokujo++;
-      }
+      if (previousRanks['player'] === '大貧民' && myRank === '大富豪') stats.gekokujo++;
 
       ['cpu1', 'cpu2', 'cpu3'].forEach(cpu => {
         const cpuChar = assignedCharacters[cpu];
         if (!cpuChar) return;
         const cpuId = cpuChar.id;
-        if (!stats.cpuStats[cpuId]) {
-          stats.cpuStats[cpuId] = { games: 0, beatMe: 0 };
-        }
+        if (!stats.cpuStats[cpuId]) stats.cpuStats[cpuId] = { games: 0, beatMe: 0 };
         stats.cpuStats[cpuId].games++;
-        
         const cpuRankVal = rankValues[playerStatusMap[cpu]] || 4;
-        if (cpuRankVal < myRankVal) {
-          stats.cpuStats[cpuId].beatMe++;
-        }
+        if (cpuRankVal < myRankVal) stats.cpuStats[cpuId].beatMe++;
       });
 
       allStats[charId] = stats;
@@ -1112,40 +1321,300 @@
       const charId = assignedCharacters.player.id;
       const allStats = loadStats();
       const stats = getCharStats(charId);
-
       stats.givenCards += given;
       stats.takenCards += taken;
-
       allStats[charId] = stats;
       saveStats(allStats);
     }
 
-    function showStatsModal() {
-      if (!assignedCharacters.player) return;
-      const charId = assignedCharacters.player.id;
-      const charName = assignedCharacters.player.name;
-      const stats = getCharStats(charId);
+    /* ----------------------------------------------------
+     * リアルタイム戦況メーター・指数スケール勝率計算エンジン
+     * ---------------------------------------------------- */
+    const PLAYER_COLORS = {
+      player: '#d4af37',
+      cpu1: '#4caf50',
+      cpu2: '#2196f3',
+      cpu3: '#e91e63'
+    };
 
-      document.getElementById('stats-char-name').textContent = charName;
+    function calculateRealtimeWinRates() {
+      const activePlayers = PLAYERS.filter(p => !finishedPlayers.includes(p));
+      const rates = { player: 0, cpu1: 0, cpu2: 0, cpu3: 0 };
 
-      const total = stats.totalGames;
-      const avgRank = total > 0 ? (stats.totalRankSum / total).toFixed(2) : '-';
-      
-      const getPct = (count) => total > 0 ? Math.round((count / total) * 100) : 0;
+      // 既に上がっているプレイヤーがいる場合
+      finishedPlayers.forEach((p, idx) => {
+        if (idx === 0) rates[p] = 100;
+        else rates[p] = 0;
+      });
 
-      let nemesisName = 'なし';
-      let maxBeatRate = -1;
-      for (let cid in stats.cpuStats) {
-        const cStat = stats.cpuStats[cid];
-        if (cStat.games >= 3) {
-          const rate = cStat.beatMe / cStat.games;
-          if (rate > maxBeatRate) {
-            maxBeatRate = rate;
-            nemesisName = CHARACTER_DEFS[cid].name;
-          }
-        }
+      if (finishedPlayers.length > 0 && rates[finishedPlayers[0]] === 100) {
+        return { 
+          rates, 
+          topPlayer: finishedPlayers[0], 
+          topPct: 100, 
+          diffFromSecond: 100,
+          isFinished: true 
+        };
       }
-      if (maxBeatRate === -1) {
+
+      const rev = effectiveReverse();
+      let rawScores = {};
+
+      activePlayers.forEach(p => {
+        const hand = hands[p];
+        const hCount = hand.length;
+        const turns = estimateTurnsToWin(hand, rev);
+
+        // 指数関数的スコア：手札が減るほど爆発的にスコアが跳ね上がる
+        let score = Math.pow(15 / Math.max(1, hCount), 2.5) * 15 + Math.pow(10 / Math.max(1, turns), 2.3) * 20;
+
+        // 手札内の決定力カード配分
+        hand.forEach(c => {
+          if (c.isJoker) score += (hCount <= 5 ? 120 : 40);
+          else if (c.display === '8') score += (hCount <= 5 ? 90 : 30);
+          else if (c.display === '2') score += rev ? 15 : (hCount <= 5 ? 70 : 25);
+          else if (c.display === 'A') score += rev ? 10 : 20;
+          else if (c.display === '3') score += rev ? (hCount <= 5 ? 70 : 25) : 10;
+        });
+
+        // 残り枚数に応じた強烈なボーナス
+        if (hCount === 1) score *= 3.0;
+        else if (hCount === 2) score *= 2.0;
+        else if (hCount === 3) score *= 1.5;
+
+        // 親権（場がクリアされているか自分が直前に出した）
+        if (fieldCards.length === 0 && lastPlayedPlayer === p) score *= 1.25;
+
+        rawScores[p] = Math.max(5, score);
+      });
+
+      // 確率正規化（合計100%）
+      let totalRaw = 0;
+      activePlayers.forEach(p => totalRaw += rawScores[p]);
+
+      let sortedByRate = [];
+      activePlayers.forEach(p => {
+        const pct = Math.round((rawScores[p] / totalRaw) * 100);
+        rates[p] = pct;
+        sortedByRate.push({ p, pct });
+      });
+
+      sortedByRate.sort((a, b) => b.pct - a.pct);
+      const topPlayer = sortedByRate[0].p;
+      const topPct = sortedByRate[0].pct;
+      const secondPct = sortedByRate.length > 1 ? sortedByRate[1].pct : 0;
+      const diffFromSecond = topPct - secondPct;
+
+      // 100%合計調整
+      let sum = 0;
+      activePlayers.forEach(p => sum += rates[p]);
+      if (sum !== 100 && activePlayers.length > 0) {
+        rates[topPlayer] += (100 - sum);
+      }
+
+      return { rates, topPlayer, topPct: rates[topPlayer], diffFromSecond, isFinished: false };
+    }
+
+    function updateEvalMeterUI() {
+      const { rates, topPlayer, topPct, diffFromSecond, isFinished } = calculateRealtimeWinRates();
+      const charDef = assignedCharacters[topPlayer];
+      const summaryText = document.getElementById('eval-summary-text');
+      const summaryPct = document.getElementById('eval-summary-pct');
+      const miniBar = document.getElementById('eval-mini-bar');
+
+      if (!summaryText || !miniBar) return;
+
+      const pName = topPlayer === 'player' ? 'あなた' : (charDef ? charDef.name : topPlayer);
+      const icon = charDef ? charDef.icon : '👑';
+
+      if (isFinished) {
+        summaryText.textContent = `勝者: ${pName}`;
+        summaryPct.textContent = `100%`;
+      } else if (diffFromSecond >= 5) {
+        // 5%以上の差がついたらそのキャラ名と勝率を表示
+        summaryText.textContent = `${icon} ${pName}`;
+        summaryPct.textContent = `${topPct}%`;
+      } else {
+        summaryText.textContent = `互角`;
+        summaryPct.textContent = `${topPct}%`;
+      }
+
+      // ミニバー更新
+      miniBar.innerHTML = `
+        <div class="eval-meter-bar-fill" style="background:${PLAYER_COLORS.player}; width:${rates.player}%;"></div>
+        <div class="eval-meter-bar-fill" style="background:${PLAYER_COLORS.cpu1}; width:${rates.cpu1}%;"></div>
+        <div class="eval-meter-bar-fill" style="background:${PLAYER_COLORS.cpu2}; width:${rates.cpu2}%;"></div>
+        <div class="eval-meter-bar-fill" style="background:${PLAYER_COLORS.cpu3}; width:${rates.cpu3}%;"></div>
+      `;
+    }
+
+    function showEvalModal() {
+      const { rates, topPlayer, topPct, diffFromSecond } = calculateRealtimeWinRates();
+      const body = document.getElementById('eval-modal-body');
+      if (!body) return;
+
+      const charNameMap = {
+        player: assignedCharacters.player ? `${assignedCharacters.player.icon} あなた` : 'あなた',
+        cpu1: assignedCharacters.cpu1 ? `${assignedCharacters.cpu1.icon} ${assignedCharacters.cpu1.name}` : 'CPU 1',
+        cpu2: assignedCharacters.cpu2 ? `${assignedCharacters.cpu2.icon} ${assignedCharacters.cpu2.name}` : 'CPU 2',
+        cpu3: assignedCharacters.cpu3 ? `${assignedCharacters.cpu3.icon} ${assignedCharacters.cpu3.name}` : 'CPU 3'
+      };
+
+      let html = `
+        <div class="eval-graph-card">
+          <div class="rule-item-title" style="margin-bottom: 8px;">📈 現在の1位（大富豪）予想確率</div>
+      `;
+
+      PLAYERS.forEach(p => {
+        const rate = rates[p] || 0;
+        const color = PLAYER_COLORS[p];
+        const hCount = hands[p].length;
+        const isFin = finishedPlayers.includes(p);
+        const finText = isFin ? `(${playerStatusMap[p]}確定)` : `(残${hCount}枚)`;
+
+        html += `
+          <div class="eval-player-row">
+            <div class="eval-player-name">${charNameMap[p]}</div>
+            <div class="eval-bar-track">
+              <div class="eval-bar-fill-p" style="width: ${rate}%; background: ${color};"></div>
+            </div>
+            <div class="eval-player-pct">${rate}%</div>
+            <div style="font-size: 10px; color: #8c9ba5; width: 68px; text-align: right;">${finText}</div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+
+      let comment = '';
+      const topDef = assignedCharacters[topPlayer];
+      const topName = topPlayer === 'player' ? 'あなた' : (topDef ? topDef.name : topPlayer);
+      const topHandCount = hands[topPlayer] ? hands[topPlayer].length : 0;
+
+      if (finishedPlayers.length > 0) {
+        comment = `既に ${charNameMap[finishedPlayers[0]]} が1位あがりを決めています！`;
+      } else if (topPct >= 75 || topHandCount <= 2) {
+        comment = `【王手・独走状態】${topName}が残り${topHandCount}枚で圧倒的リーチ！他プレイヤーは「8切り」や強力なカウンターで親権を奪わなければ阻止不能です。`;
+      } else if (topPct >= 45 || diffFromSecond >= 15) {
+        comment = `【一歩リード】${topName}が手札枚数・決定力の両面で優位に立ち、独走態勢に入りつつあります（勝率 ${topPct}%）。`;
+      } else if (diffFromSecond < 10 && topPct >= 28) {
+        comment = `【マッチレース】上位陣の戦況が拮抗！誰が先に親権を取って抜け出すかの熾烈な主導権争いが繰り広げられています。`;
+      } else {
+        comment = `【序盤・探り合い】全員の手札が揃っており、まだ勝敗の行方は混沌としています。手札の温存と仕掛けどころが鍵になります。`;
+      }
+
+      html += `
+        <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 6px; border-left: 3px solid #d4af37;">
+          <div style="font-size: 11px; color: #d4af37; font-weight: bold; margin-bottom: 2px;">🤖 宮廷AI戦況レポート</div>
+          <div style="font-size: 12px; color: #e0e6ed; line-height: 1.4;">${comment}</div>
+        </div>
+      `;
+
+      body.innerHTML = html;
+      document.getElementById('eval-modal').classList.add('active');
+    }
+
+    /* ----------------------------------------------------
+     * 10キャラ総合ランキング＆個人戦績表示
+     * ---------------------------------------------------- */
+    function renderRankingModalContent() {
+      const body = document.getElementById('stats-body');
+      if (!body) return;
+
+      if (currentStatsTab === 'all') {
+        const allStats = loadAllCharStats();
+        const sortedList = Object.keys(CHARACTER_DEFS).map(id => {
+          const def = CHARACTER_DEFS[id];
+          const st = allStats[id] || { games: 0, df: 0, f: 0, h: 0, dh: 0, rankSum: 0 };
+          const winRate = st.games > 0 ? ((st.df / st.games) * 100).toFixed(1) : '0.0';
+          const avgRank = st.games > 0 ? (st.rankSum / st.games).toFixed(2) : '-';
+          return { ...def, ...st, winRate: parseFloat(winRate), avgRank };
+        });
+
+        sortedList.sort((a, b) => {
+          if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+          return b.games - a.games;
+        });
+
+        let html = `
+          <div style="margin-bottom: 8px; font-size: 12px; color: #b0bec5;">
+            宮廷内全キャラクターの対戦成績一覧です（大富豪率 順）。
+          </div>
+          <table class="ranking-table">
+            <thead>
+              <tr>
+                <th style="width: 28px;">順位</th>
+                <th>キャラクター</th>
+                <th style="text-align: right;">大富豪率</th>
+                <th style="text-align: center; width: 120px;">順位内訳</th>
+                <th style="text-align: right;">試合数</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        sortedList.forEach((c, idx) => {
+          const rankBadge = idx === 0 ? '<span class="rank-num-badge rank-num-1">1</span>' :
+                            idx === 1 ? '<span class="rank-num-badge rank-num-2">2</span>' :
+                            idx === 2 ? '<span class="rank-num-badge rank-num-3">3</span>' : `${idx + 1}`;
+          
+          const g = c.games || 1;
+          const pctDf = Math.round((c.df / g) * 100);
+          const pctF = Math.round((c.f / g) * 100);
+          const pctH = Math.round((c.h / g) * 100);
+          const pctDh = Math.round((c.dh / g) * 100);
+
+          html += `
+            <tr>
+              <td style="text-align: center;">${rankBadge}</td>
+              <td>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <img src="${CHAR_IMAGES[c.id]}" style="width: 22px; aspect-ratio: 2/3; border-radius: 3px; border: 1px solid rgba(212,175,55,0.4);" alt="">
+                  <span style="font-weight: bold; color: #fff3a8;">${c.icon} ${c.name}</span>
+                </div>
+              </td>
+              <td style="text-align: right; font-weight: bold; color: #d4af37;">${c.winRate}%</td>
+              <td>
+                <div style="font-size: 9px; color: #8c9ba5; display: flex; justify-content: space-between;">
+                  <span style="color:#d4af37">${c.df}</span>
+                  <span style="color:#4caf50">${c.f}</span>
+                  <span style="color:#2196f3">${c.h}</span>
+                  <span style="color:#f44336">${c.dh}</span>
+                </div>
+                <div class="rank-breakdown-bar">
+                  <div class="rbb-df" style="width:${pctDf}%"></div>
+                  <div class="rbb-f" style="width:${pctF}%"></div>
+                  <div class="rbb-h" style="width:${pctH}%"></div>
+                  <div class="rbb-dh" style="width:${pctDh}%"></div>
+                </div>
+              </td>
+              <td style="text-align: right; color: #b0bec5;">${c.games}戦</td>
+            </tr>
+          `;
+        });
+
+        html += `
+            </tbody>
+          </table>
+          <div style="margin-top: 8px; font-size: 10px; color: #8c9ba5; display: flex; gap: 10px; justify-content: flex-end;">
+            <span><span style="color:#d4af37">■</span>大富豪</span>
+            <span><span style="color:#4caf50">■</span>富豪</span>
+            <span><span style="color:#2196f3">■</span>貧民</span>
+            <span><span style="color:#f44336">■</span>大貧民</span>
+          </div>
+        `;
+        body.innerHTML = html;
+      } else {
+        if (!assignedCharacters.player) return;
+        const charId = assignedCharacters.player.id;
+        const charName = assignedCharacters.player.name;
+        const stats = getCharStats(charId);
+
+        const total = stats.totalGames;
+        const avgRank = total > 0 ? (stats.totalRankSum / total).toFixed(2) : '-';
+        const getPct = (count) => total > 0 ? Math.round((count / total) * 100) : 0;
+
+        let nemesisName = 'なし';
         let maxBeat = 0;
         for (let cid in stats.cpuStats) {
           if (stats.cpuStats[cid].beatMe > maxBeat) {
@@ -1153,65 +1622,42 @@
             nemesisName = CHARACTER_DEFS[cid].name;
           }
         }
-      }
 
-      let html = `
-        <div style="margin-bottom: 16px;">
-          <div class="rule-item-title">📊 総合成績</div>
-          <div class="stats-grid">
-            <div>総試合数: <strong style="color:#fff3a8">${total}</strong> 試合</div>
-            <div>平均順位: <strong style="color:#fff3a8">${avgRank}</strong> 位</div>
-            <div>大富豪: ${stats.rankCounts['大富豪']}回 (${getPct(stats.rankCounts['大富豪'])}%)</div>
-            <div>富豪: ${stats.rankCounts['富豪']}回 (${getPct(stats.rankCounts['富豪'])}%)</div>
-            <div>貧民: ${stats.rankCounts['貧民']}回 (${getPct(stats.rankCounts['貧民'])}%)</div>
-            <div>大貧民: ${stats.rankCounts['大貧民']}回 (${getPct(stats.rankCounts['大貧民'])}%)</div>
-          </div>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <div class="rule-item-title">🔄 カード交換・特殊記録</div>
-          <div class="stats-grid">
-            <div>総上納枚数: <strong style="color:#ff6b6b">${stats.givenCards}</strong> 枚</div>
-            <div>総搾取枚数: <strong style="color:#4caf50">${stats.takenCards}</strong> 枚</div>
-            <div style="grid-column: span 2;">下克上成功回数 (大貧民→大富豪): <strong style="color:#d4af37">${stats.gekokujo}</strong> 回</div>
-          </div>
-        </div>
-
-        <div>
-          <div class="rule-item-title">⚔️ 相性データ</div>
-          <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px;">
-            <div style="margin-bottom: 8px;">最大の天敵: <strong style="color:#ff6b6b; font-size: 15px;">${nemesisName}</strong></div>
-            <div style="font-size: 11px; color: #b0bec5;">
-      `;
-
-      // 勝率が高い順にソート
-      let cpuStatsArray = [];
-      for (let cid in stats.cpuStats) {
-        const cStat = stats.cpuStats[cid];
-        const cName = CHARACTER_DEFS[cid].name;
-        const winRate = Math.round(((cStat.games - cStat.beatMe) / cStat.games) * 100);
-        cpuStatsArray.push({ name: cName, games: cStat.games, beatMe: cStat.beatMe, winRate: winRate });
-      }
-      
-      cpuStatsArray.sort((a, b) => {
-        if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-        return b.games - a.games;
-      });
-
-      for (let stat of cpuStatsArray) {
-        html += `<div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding: 4px 0;">
-          <span>${stat.name}</span>
-          <span>同卓: ${stat.games}回 / 負け: ${stat.beatMe}回 (勝率: ${stat.winRate}%)</span>
-        </div>`;
-      }
-
-      html += `
+        let html = `
+          <div style="margin-bottom: 14px;">
+            <div class="rule-item-title">📊 【${charName}】使用時の総合成績</div>
+            <div class="stats-grid">
+              <div>総試合数: <strong style="color:#fff3a8">${total}</strong> 試合</div>
+              <div>平均順位: <strong style="color:#fff3a8">${avgRank}</strong> 位</div>
+              <div>大富豪: ${stats.rankCounts['大富豪']}回 (${getPct(stats.rankCounts['大富豪'])}%)</div>
+              <div>富豪: ${stats.rankCounts['富豪']}回 (${getPct(stats.rankCounts['富豪'])}%)</div>
+              <div>貧民: ${stats.rankCounts['貧民']}回 (${getPct(stats.rankCounts['貧民'])}%)</div>
+              <div>大貧民: ${stats.rankCounts['大貧民']}回 (${getPct(stats.rankCounts['大貧民'])}%)</div>
             </div>
           </div>
-        </div>
-      `;
 
-      document.getElementById('stats-body').innerHTML = html;
+          <div style="margin-bottom: 14px;">
+            <div class="rule-item-title">🔄 カード交換・記録</div>
+            <div class="stats-grid">
+              <div>総上納枚数: <strong style="color:#ff6b6b">${stats.givenCards}</strong> 枚</div>
+              <div>総搾取枚数: <strong style="color:#4caf50">${stats.takenCards}</strong> 枚</div>
+              <div style="grid-column: span 2;">下克上成功 (大貧民→大富豪): <strong style="color:#d4af37">${stats.gekokujo}</strong> 回</div>
+            </div>
+          </div>
+
+          <div>
+            <div class="rule-item-title">⚔️ 天敵キャラクター</div>
+            <div style="background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 6px;">
+              <div>最大の天敵: <strong style="color:#ff6b6b; font-size: 14px;">${nemesisName}</strong></div>
+            </div>
+          </div>
+        `;
+        body.innerHTML = html;
+      }
+    }
+
+    function showStatsModal() {
+      renderRankingModalContent();
       document.getElementById('stats-modal').classList.add('active');
     }
 
@@ -1363,15 +1809,13 @@
     const soundMgr = new SoundManager();
 
     /* ----------------------------------------------------
-     * BGM管理クラス (擬似シームレスループ方式)
+     * BGM管理クラス
      * ---------------------------------------------------- */
     class BgmManager {
       constructor() {
         this.audio = new Audio();
-        this.audio.volume = 0.3; // BGMの音量（0.0 ～ 1.0）
+        this.audio.volume = 0.3;
         this.currentTrack = null;
-        
-        // ※音楽ファイルの拡張子が .mp3 でない場合（.wav や .m4a など）は、ここを変更してください。
         this.tracks = {
           charSelect: '宮廷の戦略_キャラ選択.mp3',
           normal: 'bgm_normal.mp3',
@@ -1380,11 +1824,9 @@
         };
         this.isCharSelectPhase = true;
 
-        // 擬似シームレスループ処理
-        // 曲の終端の0.2秒前になったら先頭に巻き戻すことで無音時間をスキップする
         this.audio.addEventListener('timeupdate', () => {
           if (this.audio.duration > 0) {
-            const bufferTime = 0.2; // 巻き戻すタイミング（秒）
+            const bufferTime = 0.2;
             if (this.audio.currentTime >= this.audio.duration - bufferTime) {
               this.audio.currentTime = 0;
               this.audio.play().catch(() => {});
@@ -1392,7 +1834,6 @@
           }
         });
 
-        // ブラウザの自動再生制限対策：ユーザーの初回クリック時に再生を開始する
         const startBgm = () => {
           if (this.currentTrack && !isSoundMuted) {
             this.audio.play().catch(e => console.log("BGM再生待機中:", e));
@@ -1428,7 +1869,6 @@
 
       setCharSelectPhase(isCharSelect) {
         this.isCharSelectPhase = isCharSelect;
-        // グローバル変数の isRevolution, isElevenBack を参照
         this.update(typeof isRevolution !== 'undefined' ? isRevolution : false, 
                     typeof isElevenBack !== 'undefined' ? isElevenBack : false);
       }
@@ -1472,7 +1912,6 @@
       KING: { id: 'KING', name: '王', icon: '🏰' }
     };
 
-    /* キャラクター立ち絵（「fugo-絵柄」フォルダから読み込み） */
     const CHAR_IMAGES = {
       DUKE: "fugo-絵柄/duke.png",
       MARQUIS: "fugo-絵柄/marquis.png",
@@ -1486,7 +1925,6 @@
       KING: "fugo-絵柄/king.png"
     };
 
-    /* キャラクター選択画面用の短い説明文 */
     const CHAR_SHORT_DESC = {
       DUKE: '強カードを温存する慎重派',
       MARQUIS: 'スコア計算重視のエレガント派',
@@ -1503,11 +1941,10 @@
     let assignedCharacters = { player: null, cpu1: null, cpu2: null, cpu3: null };
     let playedCardsHistory = [];
     let lastActionLog = { player: null, cards: [] };
-
     let hasPassedInRound = { player: false, cpu1: false, cpu2: false, cpu3: false };
 
     /* ----------------------------------------------------
-     * キャラクター会話システム（セリフ定義 & 状態管理）
+     * キャラクター会話システム
      * ---------------------------------------------------- */
     const CHARACTER_DIALOGUES = {
       DUKE: {
@@ -1537,7 +1974,7 @@
         ENEMY_FEW: ['おや、もう残り僅かですか。警戒が必要です（笑）。', '詰めが甘いのでは？'],
         MY_FEW: ['私の勝利へのシナリオは完成しています。', '申し訳ないが勝ち上がらせていただきます。'],
         WIN: ['私の勝利です。完璧な計算通りでしたね。', 'オーホホホ！ ごめんあそばせ！'],
-        LOSE: ['これは少々計算が狂いましたな。', 'くっ、私のエレENSが……！'],
+        LOSE: ['これは少々計算が狂いましたな。', 'くっ、私のエレガンスが……！'],
         GAME_START: ['優雅なる勝負を楽しみましょう。', 'よろしくお願いいたしますね。'],
         EXCHANGE: ['素敵なカードをいただけると嬉しいのですが。', 'お互い良い取引を。'],
         NEXT_GAME: ['次のゲームも華麗に舞うとしましょう。', 'さあ、参りましょうか。']
@@ -1664,7 +2101,7 @@
         PASS: ['……見送ろう。', '余談は不要。'],
         ENEMY_FEW: ['逃がさん。', '王手だ。'],
         MY_FEW: ['チェックメイトだ。', '王者の刻が来た。'],
-        WIN: ['当然 Result だ。（当然の結果だ。）', '余が王である。'],
+        WIN: ['当然の結果だ。', '余が王である。'],
         LOSE: ['……認めよう。', '見事な剣筋であった。'],
         GAME_START: ['王の戦いを始めよう。', '全力で参れ。'],
         EXCHANGE: ['望むものを差し出せ。', '受け取ろう。'],
@@ -1859,7 +2296,6 @@
       if (!isSoundMuted) soundMgr.playSelect();
       assignedCharacters.player = CHARACTER_DEFS[id];
       
-      // モード選択の取得
       const modeRadios = document.getElementsByName('playMode');
       for (let radio of modeRadios) {
         if (radio.checked) {
@@ -1868,19 +2304,17 @@
         }
       }
       
-      // 自動プレイボタンの初期状態を設定
       const autoBtn = document.getElementById('auto-play-btn');
       if (autoBtn) {
         autoBtn.textContent = isAutoPlayMode ? '自動プレイ: ON' : '自動プレイ: OFF';
         autoBtn.classList.toggle('btn-gold', isAutoPlayMode);
       }
       
-      // 倍速コントロールの表示設定
       document.getElementById('speed-controls').style.display = isAutoPlayMode ? 'flex' : 'none';
 
       const overlay = document.getElementById('char-select-overlay');
       if (overlay) overlay.classList.remove('active');
-      bgmMgr.setCharSelectPhase(false); // BGMを通常時に切り替え
+      bgmMgr.setCharSelectPhase(false);
       resetGame(true, false);
     }
 
@@ -2081,12 +2515,10 @@
         }
 
         case 'SCHOLAR': {
-          // 学者の特権：消費されたカード履歴(playedCardsHistory)から未見カードを算出し、絶対安全手を導き出す
           const unrevealed = getUnrevealedCards(hand);
           const safeMoves = validMoves.filter(m => isGuaranteedAbsoluteWin(m, unrevealed));
           
           if (safeMoves.length > 0) {
-            // 絶対安全手があれば、その中で最も枚数が多いもの（またはコストが低いもの）を選ぶ
             safeMoves.sort((a, b) => {
               if (a.length !== b.length) return b.length - a.length;
               return evaluateMoveDefault(b) - evaluateMoveDefault(a);
@@ -2112,7 +2544,6 @@
         }
 
         case 'STRATEGIST': {
-          // 軍師の特権：消費されたカード履歴から未見カードを算出し、相手の上がりを徹底的に妨害する
           const dangerPlayer = PLAYERS.some(p => p !== cpu && !finishedPlayers.includes(p) && hands[p].length <= 3);
           const unrevealed = getUnrevealedCards(hand);
           let bestMove = null, bestScore = -999;
@@ -2120,7 +2551,6 @@
           for (let move of validMoves) {
             let score = evaluateMoveDefault(move);
             
-            // 絶対安全手（確実に親が取れる）なら高評価
             if (isGuaranteedAbsoluteWin(move, unrevealed)) {
               score += 50;
             }
@@ -2130,7 +2560,6 @@
               if (move[0].display === 'A' || move[0].display === '2') score += 40;
               if (move[0].display === 'J') score += 30;
               
-              // 相手が上がりそうな時、確実な手や妨害手以外はマイナス評価（パスを優先）
               if (!isGuaranteedAbsoluteWin(move, unrevealed) && move[0].display !== '8' && move[0].display !== 'J') {
                 score -= 20;
               }
@@ -2143,7 +2572,7 @@
           }
 
           if (dangerPlayer && canPass && bestScore < 20) {
-            return null; // 危険な時は確実な手以外はパス
+            return null;
           } else if (canPass && bestScore < -10) {
             return null;
           }
@@ -2180,8 +2609,6 @@
         }
 
         case 'KING': {
-          // 王の特権：消費されたカード履歴(playedCardsHistory)から未見カードを算出し、
-          // 相手の手札を推論してミニマックス探索を行う（最強AI）
           return kingDecideMove(cpu, hand, validMoves, canPass);
         }
 
@@ -2200,16 +2627,15 @@
       }));
     }
 
-
     // ======================================================================
-    // 【強化版】王(KING) AI — 改善MCTS + 相手手札推論精密化
+    // 【極限強化版】王(KING) AI
     // ======================================================================
 
-    const KING_AI_ENHANCED_DEBUG = false; // コンソール出力用
+    const KING_AI_ENHANCED_DEBUG = false;
 
     function kingLog(...args) {
       if (KING_AI_ENHANCED_DEBUG && typeof console !== 'undefined') {
-        console.log('[王AI強化版]', ...args);
+        console.log('[王AI極限強化]', ...args);
       }
     }
 
@@ -2217,8 +2643,6 @@
       if (!move) return 'パス';
       return move.map(c => c.isJoker ? `${c.suitSymbol}JOKER` : `${c.suitSymbol}${c.display}`).join(' ');
     }
-
-    // ---- 実ルール再現（make/unmake）低レベル関数 ----
 
     function simDoMove(player, move) {
       const undo = {
@@ -2301,11 +2725,8 @@
       }
     }
 
-    // ---- 最短あがり手数の推定 ----
-
     function estimateTurnsToWin(hand, reverse) {
       if (hand.length === 0) return 0;
-      let turns = 0;
       let controlCards = 0; 
       
       const groups = {};
@@ -2317,25 +2738,119 @@
       });
       
       const groupKeys = Object.keys(groups);
-      turns = groupKeys.length;
+      let turns = groupKeys.length;
+      if (jokerCount > 0 && turns === 0) turns = 1;
       
       if (groups['8']) controlCards += groups['8'];
       
       groupKeys.forEach(k => {
         if (k === '8') return;
         const cost = COST_TABLE[k];
-        const isStrong = reverse ? cost <= 5 : cost >= 11;
+        const isStrong = reverse ? cost <= 4 : cost >= 12;
         if (isStrong) controlCards += groups[k];
       });
       
       controlCards += jokerCount;
-      
       if (turns === 1) return 1;
-      
-      return Math.max(1, turns - controlCards);
+      return Math.max(1, turns - Math.floor(controlCards * 0.8));
     }
 
-    // ---- 候補手のヒューリスティック評価（枝刈り用） ----
+    function kingInferCardWeights(unrevealed, players, handSizes) {
+      const weights = {};
+      players.forEach(p => {
+        weights[p] = {};
+        unrevealed.forEach((c, idx) => { weights[p][idx] = 1.0; });
+      });
+
+      const dangerPlayer = players.find(p => handSizes[p] <= 3);
+
+      unrevealed.forEach((c, idx) => {
+        const disp = c.isJoker ? 'JOKER' : c.display;
+        const isCritical = (disp === '2' || disp === 'JOKER' || disp === '8' || disp === 'A');
+
+        players.forEach(p => {
+          const hSize = handSizes[p];
+          if (dangerPlayer && p === dangerPlayer && isCritical) weights[p][idx] *= 2.5;
+          if (hSize <= 2 && isCritical) weights[p][idx] *= 2.0;
+
+          if (hasPassedInRound[p] && fieldCards.length === 1 && !isRevolution) {
+            const topCost = COST_TABLE[fieldCards[0].isJoker ? 'JOKER' : fieldCards[0].display];
+            const myCost = COST_TABLE[disp];
+            if (myCost > topCost && !c.isJoker && disp !== '8') weights[p][idx] *= 0.35;
+          }
+        });
+      });
+
+      return weights;
+    }
+
+    function kingPartitionWorld(unrevealed, players, handSizes, profile) {
+      const world = {};
+      players.forEach(p => world[p] = []);
+      const remaining = {}; 
+      players.forEach(p => remaining[p] = handSizes[p]);
+
+      if (unrevealed.length === 0) return world;
+
+      const cardWeights = kingInferCardWeights(unrevealed, players, handSizes);
+      const unassignedIndices = unrevealed.map((_, i) => i);
+      shuffle(unassignedIndices);
+
+      unassignedIndices.sort((a, b) => {
+        const ca = unrevealed[a], cb = unrevealed[b];
+        const costA = COST_TABLE[ca.isJoker ? 'JOKER' : ca.display];
+        const costB = COST_TABLE[cb.isJoker ? 'JOKER' : cb.display];
+        return costB - costA;
+      });
+
+      for (let cIdx of unassignedIndices) {
+        const card = unrevealed[cIdx];
+        const validPlayers = players.filter(p => remaining[p] > 0);
+        if (validPlayers.length === 0) break;
+
+        let totalWeight = 0;
+        const pWeights = validPlayers.map(p => {
+          const w = cardWeights[p][cIdx] || 1.0;
+          totalWeight += w;
+          return { p, w };
+        });
+
+        let r = Math.random() * totalWeight;
+        let chosenPlayer = validPlayers[0];
+        for (let pw of pWeights) {
+          if (r <= pw.w) { chosenPlayer = pw.p; break; }
+          r -= pw.w;
+        }
+
+        world[chosenPlayer].push(card);
+        remaining[chosenPlayer]--;
+      }
+
+      return world;
+    }
+
+    function opponentHeuristicScore(move, player, reverse) {
+      if (!move || move.length === 0) return -100;
+      const h = hands[player];
+      const disp = move[0].isJoker ? 'JOKER' : move[0].display;
+      const cost = COST_TABLE[disp];
+      const effCost = reverse ? (14 - cost) : cost;
+      
+      let score = 50 - effCost;
+      if (move.length === h.length) score += 20000;
+      if (h.length <= 3) {
+        if (disp === '8') score += 150;
+        if (disp === '2' || disp === 'JOKER') score += 100;
+      }
+      if (disp === '8') score += 60;
+      if (move.length >= 4) score += 80;
+      score += move.length * 20;
+
+      const groupCount = h.filter(c => (c.isJoker ? 'JOKER' : c.display) === disp).length;
+      if (move.length < groupCount && move.length === 1 && h.length > 3) score -= 40;
+
+      return score;
+    }
 
     function kingHeuristicMoveScore(move, hand, reverse) {
       if (!move || move.length === 0) return 0;
@@ -2344,70 +2859,60 @@
       const cost = COST_TABLE[disp];
       const effCost = reverse ? (14 - cost) : cost;
       
-      score -= effCost; 
-      
-      if (disp === '8') score += 50; 
+      score -= effCost * 2; 
+      if (disp === '8') score += 70; 
       if (disp === 'J') score += 40; 
-      if (move.length >= 4) score += 60;
-      score += move.length * 10; 
+      if (move.length >= 4) score += 90;
+      score += move.length * 25; 
       
       const originalCount = hand.filter(c => (c.isJoker ? 'JOKER' : c.display) === disp).length;
-      if (move.length < originalCount && move.length === 1) {
-        score -= 30;
-      }
-      
-      if (move.length === hand.length) score += 10000;
+      if (move.length < originalCount && move.length === 1) score -= 35;
+      if (move.length === hand.length) score += 50000;
       
       return score;
     }
 
-    function getCandidateMovesForPlayer(player, branchLimit, reverse) {
+    function getCandidateMovesForPlayer(player, branchLimit, reverse, isKingPerspective = false) {
       const h = hands[player];
       const moves = getAllValidMoves(h);
       const list = [];
-      
-      const activeOthers = PLAYERS.filter(p => p !== player && !finishedPlayers.includes(p));
-      const isDangerousEndgame = activeOthers.some(p => hands[p].length <= 3);
-      const lastPlayerAlive = activeOthers.length === 1;
-      
-      const effectiveBranchLimit = (isDangerousEndgame || lastPlayerAlive) ? 999 : branchLimit;
-      
+      const isKing = (player === 'player' ? assignedCharacters.player?.id === 'KING' : assignedCharacters[player]?.id === 'KING');
+
       if (moves.length > 0) {
-        const scored = moves.map(m => ({ m, s: kingHeuristicMoveScore(m, h, reverse) }));
+        const scored = moves.map(m => ({
+          m,
+          s: isKing ? kingHeuristicMoveScore(m, h, reverse) : opponentHeuristicScore(m, player, reverse)
+        }));
         scored.sort((a, b) => b.s - a.s);
         
         let addedTypes = new Set();
-        const addCand = (m, type) => {
-            const key = m.map(c=>c.isJoker?'J':c.display).join('');
-            if (!addedTypes.has(key)) {
-                list.push(m);
-                addedTypes.add(key);
-            }
+        const addCand = (m) => {
+          const key = m.map(c => c.isJoker ? 'J' : c.display).join('');
+          if (!addedTypes.has(key)) { list.push(m); addedTypes.add(key); }
         };
 
         const finish = scored.find(x => x.m.length === h.length);
-        if(finish) addCand(finish.m, 'finish');
+        if (finish) addCand(finish.m);
 
-        addCand(scored[scored.length - 1].m, 'min');
-        addCand(scored[0].m, 'max');
+        if (scored.length > 0) {
+          addCand(scored[0].m);
+          addCand(scored[scored.length - 1].m);
+        }
 
         const eight = scored.find(x => x.m[0].display === '8');
-        if(eight) addCand(eight.m, '8');
-
-        const eleven = scored.find(x => x.m[0].display === 'J');
-        if(eleven) addCand(eleven.m, '11');
+        if (eight) addCand(eight.m);
 
         const rev = scored.find(x => x.m.length >= 4);
-        if(rev) addCand(rev.m, 'rev');
+        if (rev) addCand(rev.m);
 
         const pair = scored.find(x => x.m.length === 2);
-        if(pair) addCand(pair.m, 'pair');
+        if (pair) addCand(pair.m);
         const triple = scored.find(x => x.m.length === 3);
-        if(triple) addCand(triple.m, 'triple');
+        if (triple) addCand(triple.m);
 
-        for(const item of scored) {
-            if(list.length >= effectiveBranchLimit) break;
-            addCand(item.m, 'fill');
+        for (const item of scored) {
+          if (list.length >= branchLimit) break;
+          addCand(item.m);
         }
       }
       
@@ -2416,12 +2921,10 @@
       return list;
     }
 
-    // ---- 局面評価関数（AIの判断のコア） ----
-
     function kingEvaluateState(kingCpu) {
       if (finishedPlayers.includes(kingCpu)) {
         const rankIdx = finishedPlayers.indexOf(kingCpu);
-        return 100000 - rankIdx * 20000; 
+        return 200000 - rankIdx * 50000; 
       }
 
       let score = 0;
@@ -2429,21 +2932,21 @@
       const reverse = effectiveReverse();
       
       const myTurns = estimateTurnsToWin(kingHand, reverse);
-      score -= myTurns * 3000;
-      score -= kingHand.length * 10;
+      score -= myTurns * 4000;
+      score -= kingHand.length * 15;
 
       const rankCounts = {};
       kingHand.forEach(c => { const k = c.isJoker ? 'JOKER' : c.display; rankCounts[k] = (rankCounts[k] || 0) + 1; });
       Object.values(rankCounts).forEach(cnt => { 
-        if (cnt === 2) score += 30; 
-        if (cnt === 3) score += 60;
-        if (cnt >= 4) score += 100;
+        if (cnt === 2) score += 40; 
+        if (cnt === 3) score += 80;
+        if (cnt >= 4) score += 150;
       });
 
       kingHand.forEach(c => {
         const cost = COST_TABLE[c.isJoker ? 'JOKER' : c.display];
         const effCost = reverse ? (14 - cost) : cost;
-        score += effCost * 3;
+        score += effCost * 4;
       });
 
       let enemyMinTurns = 99;
@@ -2451,26 +2954,22 @@
         if (p === kingCpu) return;
         if (finishedPlayers.includes(p)) {
           const rankIdx = finishedPlayers.indexOf(p);
-          score -= (100000 - rankIdx * 20000) / 3;
+          score -= (200000 - rankIdx * 50000) / 2.5;
           return;
         }
         const cnt = hands[p].length;
         const eTurns = estimateTurnsToWin(hands[p], reverse);
         if (eTurns < enemyMinTurns) enemyMinTurns = eTurns;
         
-        score += eTurns * 50;
-        score += cnt * 10;
+        score += eTurns * 80;
+        score += cnt * 20;
         
-        if (eTurns === 1) score -= 5000;
-        else if (eTurns === 2) score -= 2000;
-        else if (eTurns <= 3) score -= 1000;
-        
-        if (cnt === 1) score -= 4000;
-        else if (cnt === 2) score -= 1500;
-        else if (cnt === 3) score -= 800;
+        if (cnt === 1) score -= 9000;
+        else if (cnt === 2) score -= 4000;
+        else if (cnt === 3) score -= 1800;
       });
 
-      if (fieldCards.length === 0 && lastPlayedPlayer === kingCpu) score += 500;
+      if (fieldCards.length === 0 && lastPlayedPlayer === kingCpu) score += 800;
 
       let dominanceScore = 0;
       const dominantCount = kingHand.filter(c => {
@@ -2478,93 +2977,12 @@
         const cost = COST_TABLE[c.display];
         return reverse ? cost <= 4 : cost >= 12;
       }).length;
-      dominanceScore += dominantCount * 50;
-
-      PLAYERS.forEach(p => {
-        if (p === kingCpu || finishedPlayers.includes(p)) return;
-        if (hands[p].length <= 3) dominanceScore += 30;
-      });
-
-      let pairCountForDom = 0;
-      Object.values(rankCounts).forEach(cnt => { if (cnt >= 2) pairCountForDom++; });
-      if (pairCountForDom >= 2) dominanceScore += 40;
+      dominanceScore += dominantCount * 70;
 
       score += dominanceScore;
-
       return score;
     }
 
-    // ---- 仮想手札（world）の生成 ----
-
-    function kingPartitionWorld(unrevealed, players, handSizes, profile) {
-      const world = {};
-      players.forEach(p => world[p] = []);
-      const remaining = {}; 
-      players.forEach(p => remaining[p] = handSizes[p]);
-
-      let biasedPool = [], normalPool = [];
-      
-      const mostDangerPlayer = players.reduce((a,b) => handSizes[a] < handSizes[b] ? a : b);
-      const dangerousCount = handSizes[mostDangerPlayer];
-
-      let dangerBiasStrength = 'normal';
-      if (dangerousCount === 1) dangerBiasStrength = 'critical';
-      else if (dangerousCount === 2) dangerBiasStrength = 'high';
-      else if (dangerousCount === 3) dangerBiasStrength = 'medium';
-
-      if (profile === 'danger_focused' || profile === 'worst_for_me' || dangerBiasStrength !== 'normal') {
-        unrevealed.forEach(c => {
-          const disp = c.isJoker ? 'JOKER' : c.display;
-          const isStrongCard = (disp === '8' || disp === 'A' || disp === '2' || disp === 'J' || disp === 'JOKER');
-          
-          if (isStrongCard) {
-            biasedPool.push(c);
-          } else {
-            normalPool.push(c);
-          }
-        });
-      } else {
-        normalPool = [...unrevealed];
-      }
-
-      if ((profile === 'danger_focused' || profile === 'worst_for_me' || dangerBiasStrength !== 'normal') && biasedPool.length > 0) {
-        biasedPool = shuffle(biasedPool);
-        
-        const assignCount = dangerBiasStrength === 'critical' ? Math.ceil(biasedPool.length * 0.8)
-                           : dangerBiasStrength === 'high' ? Math.ceil(biasedPool.length * 0.6)
-                           : dangerBiasStrength === 'medium' ? Math.ceil(biasedPool.length * 0.4)
-                           : Math.ceil(biasedPool.length * 0.2);
-        
-        for(let i = 0; i < assignCount && biasedPool.length > 0; i++) {
-          const card = biasedPool.pop();
-          if (remaining[mostDangerPlayer] > 0) {
-            world[mostDangerPlayer].push(card);
-            remaining[mostDangerPlayer]--;
-          } else {
-            normalPool.push(card);
-          }
-        }
-        normalPool.push(...biasedPool);
-      }
-
-      function assignRoundRobin(pool) {
-        const order = shuffle(pool);
-        let pi = 0;
-        for (const c of order) {
-          let attempts = 0;
-          while (remaining[players[pi % players.length]] <= 0 && attempts < players.length) { pi++; attempts++; }
-          const p = players[pi % players.length];
-          if (remaining[p] > 0) { world[p].push(c); remaining[p]--; }
-          pi++;
-        }
-      }
-
-      assignRoundRobin(normalPool);
-
-      return world;
-    }
-
-    // 絶対に負けない手（絶対安全手）を判定
     function isGuaranteedAbsoluteWin(move, unrevealed) {
       if (move.length === 1 && move[0].isJoker) return true;
       
@@ -2595,54 +3013,62 @@
       return true;
     }
 
-    function findWinningMoveEndgame(cpu, hand, depth = 0, maxDepth = 4) {
-      if (hand.length === 0) return null;
-      
+    function kingSolveExactWin(kingCpu, hand, activeOthers, depth = 0, maxDepth = 6) {
+      if (hand.length === 0) return { win: true, rank: 1, move: null };
+      if (depth >= maxDepth) return { win: false, rank: 99, move: null };
+
       const moves = getAllValidMoves(hand);
+      if (moves.length === 0) return { win: false, rank: 99, move: null };
+
+      const instantWin = moves.find(m => m.length === hand.length);
+      if (instantWin) return { win: true, rank: 1, move: instantWin };
+
       for (let move of moves) {
-        if (move.length === hand.length) return move;
-      }
-      
-      if (depth >= maxDepth) return null;
-      
-      let bestMove = null;
-      let bestScore = -Infinity;
-      
-      for (let move of moves) {
-        const undo = simDoMove(cpu, move);
-        const wasEightGiri = move[0].display === '8';
-        const turnInfo = simAdvanceTurn(PLAYERS.indexOf(cpu), wasEightGiri);
-        
-        let score = kingEvaluateState(cpu);
-        
-        if (turnInfo.nextIdx >= 0) {
-          const nextPlayer = PLAYERS[turnInfo.nextIdx];
-          const nextHand = hands[nextPlayer];
-          const nextMoves = getAllValidMoves(nextHand);
-          
-          for (let nextMove of nextMoves) {
-            const undo2 = simDoMove(nextPlayer, nextMove);
-            const turnInfo2 = simAdvanceTurn(turnInfo.nextIdx, nextMove[0].display === '8');
-            const opponentScore = kingEvaluateState(cpu);
-            score = Math.min(score, opponentScore);
-            simUnadvanceTurn(turnInfo2);
-            simUndoMove(undo2);
+        const undo = simDoMove(kingCpu, move);
+        const wasEight = move[0].display === '8';
+        const tInfo = simAdvanceTurn(PLAYERS.indexOf(kingCpu), wasEight);
+
+        let canBeBeaten = false;
+
+        if (tInfo.nextIdx >= 0 && PLAYERS[tInfo.nextIdx] !== kingCpu) {
+          const nextP = PLAYERS[tInfo.nextIdx];
+          const nextMoves = getAllValidMoves(hands[nextP]);
+          const candidateOppMoves = nextMoves.length > 0 ? nextMoves : [null];
+
+          for (let oppMove of candidateOppMoves) {
+            let oppUndo;
+            if (oppMove === null) {
+              oppUndo = simDoPass(); applyPassCount();
+            } else {
+              oppUndo = simDoMove(nextP, oppMove);
+            }
+            const oppTInfo = simAdvanceTurn(tInfo.nextIdx, oppMove && oppMove[0].display === '8');
+
+            if (hands[nextP].length === 0) canBeBeaten = true;
+
+            simUnadvanceTurn(oppTInfo);
+            if (oppMove === null) simUndoPass(oppUndo);
+            else simUndoMove(oppUndo);
+
+            if (canBeBeaten) break;
           }
         }
-        
-        simUnadvanceTurn(turnInfo);
-        simUndoMove(undo);
-        
-        if (score > bestScore) {
-          bestScore = score;
-          bestMove = move;
-        }
-      }
-      
-      return bestMove;
-    }
 
-    // ---- MCTS (モンテカルロ木探索) 関連 ----
+        let subResult = { win: false };
+        if (!canBeBeaten && hands[kingCpu].length > 0) {
+          subResult = kingSolveExactWin(kingCpu, hands[kingCpu], activeOthers, depth + 1, maxDepth);
+        } else if (!canBeBeaten && hands[kingCpu].length === 0) {
+          subResult = { win: true };
+        }
+
+        simUnadvanceTurn(tInfo);
+        simUndoMove(undo);
+
+        if (subResult.win) return { win: true, rank: 1, move: move };
+      }
+
+      return { win: false, rank: 99, move: null };
+    }
 
     class MCTSNode {
       constructor(move, parent, playerIdx) {
@@ -2675,54 +3101,50 @@
       else simUndoMove(simData.undo);
     }
 
-    // ---- 探索エントリーポイント ----
-
     function kingDecideMove(cpu, hand, validMoves, canPass) {
       const startTime = performance.now();
       const kingIdx = PLAYERS.indexOf(cpu);
       const activeOthers = PLAYERS.filter(p => p !== cpu && !finishedPlayers.includes(p));
       const reverse = effectiveReverse();
-      
       const totalCardsInPlay = PLAYERS.reduce((sum, p) => sum + hands[p].length, 0);
-      
-      const dangerPlayer = activeOthers.find(p => hands[p].length <= 3);
-      if (dangerPlayer && hands[dangerPlayer].length === 1) {
-        kingLog('【最高危機】相手が1枚残り→ミニマックス探索');
-        const urgentMove = findWinningMoveEndgame(cpu, hand, 0, 6);
-        if (urgentMove && validMoves.includes(urgentMove)) return urgentMove;
-      }
 
-      if (totalCardsInPlay <= 15) {
-        const winMove = findWinningMoveEndgame(cpu, hand, 0, 4);
-        if (winMove && validMoves.includes(winMove)) return winMove;
-      }
-      const unrevealedForCheck = getUnrevealedCards(hand);
-      const strongMoves = validMoves.filter(m => isGuaranteedAbsoluteWin(m, unrevealedForCheck));
-      if (strongMoves.length > 0 && estimateTurnsToWin(hand, reverse) <= 2) {
-        strongMoves.sort((a, b) => b.length - a.length);
-        return strongMoves[0];
-      }
       if (validMoves.length === 0) return null;
       if (activeOthers.length === 0) {
         validMoves.sort((a, b) => evaluateMoveDefault(b) - evaluateMoveDefault(a));
         return validMoves[0];
       }
 
-      let timeBudget = 250;
-      if (dangerPlayer) {
-        timeBudget = 600;
-        kingLog(`【危機状況】CPU ${dangerPlayer} が ${hands[dangerPlayer].length}枚 - 時間予算: ${timeBudget}ms`);
-      } else if (totalCardsInPlay <= 20) {
-        timeBudget = 500;
+      const finishMove = validMoves.find(m => m.length === hand.length);
+      if (finishMove) return finishMove;
+
+      const dangerPlayer = activeOthers.find(p => hands[p].length <= 3);
+      const isEndgame = (totalCardsInPlay <= 16 || hand.length <= 5 || Boolean(dangerPlayer));
+
+      if (isEndgame) {
+        kingLog('【終盤完全読みソルバー発動】');
+        const exact = kingSolveExactWin(cpu, hand, activeOthers, 0, 5);
+        if (exact.win && exact.move && validMoves.includes(exact.move)) {
+          kingLog(`【確定勝ちルート検出】-> ${kingDescribeMove(exact.move)}`);
+          return exact.move;
+        }
       }
 
+      const unrevealed = getUnrevealedCards(hand);
+      const safeMoves = validMoves.filter(m => isGuaranteedAbsoluteWin(m, unrevealed));
+      if (safeMoves.length > 0 && estimateTurnsToWin(hand, reverse) <= 2) {
+        safeMoves.sort((a, b) => b.length - a.length);
+        return safeMoves[0];
+      }
+
+      let timeBudget = 260;
+      if (dangerPlayer) timeBudget = 650;
+      else if (totalCardsInPlay <= 22) timeBudget = 500;
+
       const root = new MCTSNode(null, null, kingIdx);
-      
-      const rootBranchLimit = 8;
-      root.unexpandedMoves = getCandidateMovesForPlayer(cpu, rootBranchLimit, reverse);
+      const rootBranchLimit = 10;
+      root.unexpandedMoves = getCandidateMovesForPlayer(cpu, rootBranchLimit, reverse, true);
       if (canPass && !root.unexpandedMoves.includes(null)) root.unexpandedMoves.push(null);
 
-      const unrevealed = getUnrevealedCards(hand);
       const handSizes = {}; 
       activeOthers.forEach(p => handSizes[p] = hands[p].length);
       let iterations = 0;
@@ -2740,7 +3162,7 @@
 
         while (node.unexpandedMoves && node.unexpandedMoves.length === 0 && node.children.length > 0) {
           let bestChild = null, bestUCB = -Infinity;
-          const C = 1.5;
+          const C = 1.414;
           for (let child of node.children) {
             if (child.visits === 0) { bestChild = child; break; }
             let ucb = (child.totalScore / child.visits) + C * Math.sqrt(Math.log(node.visits) / child.visits);
@@ -2761,29 +3183,40 @@
           node = child;
 
           if (finishedPlayers.length < 3) {
-            node.unexpandedMoves = getCandidateMovesForPlayer(PLAYERS[nextPlayerIdx], 4, effectiveReverse());
+            const nextP = PLAYERS[nextPlayerIdx];
+            const isNextKing = (nextP === cpu);
+            node.unexpandedMoves = getCandidateMovesForPlayer(nextP, 4, effectiveReverse(), isNextKing);
           } else {
             node.unexpandedMoves = [];
           }
         }
 
         let depth = 0;
-        const maxDepth = 3;
+        const maxDepth = 4;
         let currPlayerIdx = node.playerIdx;
         let playoutUndoStack = [];
 
         while (depth < maxDepth && finishedPlayers.length < 3) {
-          const moves = getCandidateMovesForPlayer(PLAYERS[currPlayerIdx], 3, effectiveReverse());
-          if (moves.length === 0) break;
-          const move = moves[Math.floor(Math.random() * moves.length)];
-          const simData = applySimMove(currPlayerIdx, move);
+          const currP = PLAYERS[currPlayerIdx];
+          const isCurrKing = (currP === cpu);
+          const cands = getCandidateMovesForPlayer(currP, 3, effectiveReverse(), isCurrKing);
+          if (cands.length === 0) break;
+
+          let chosenMove;
+          if (Math.random() < 0.85) {
+            chosenMove = cands[0];
+          } else {
+            chosenMove = cands[Math.floor(Math.random() * cands.length)];
+          }
+
+          const simData = applySimMove(currPlayerIdx, chosenMove);
           playoutUndoStack.push(simData);
           currPlayerIdx = simData.turnInfo.nextIdx;
           depth++;
         }
 
         let rawScore = kingEvaluateState(cpu);
-        let reward = 1 / (1 + Math.exp(-rawScore / 5000));
+        let reward = 1 / (1 + Math.exp(-rawScore / 8000));
 
         while (playoutUndoStack.length > 0) revertSimMove(playoutUndoStack.pop());
         while (undoStack.length > 0) revertSimMove(undoStack.pop());
@@ -2816,8 +3249,6 @@
       }
       return bestMove;
     }
-
-
 
     /* ----------------------------------------------------
      * ゲーム状態・変数
@@ -2953,7 +3384,6 @@
         setMessage('カードが配布されました。「カード交換へ」ボタンを押してカード交換を開始してください。');
         render(true);
         
-        // 自動プレイモードなら自動で交換フェーズへ進む
         if (isAutoPlayMode) {
           setTimeout(() => {
             if (isPreExchangePhase) proceedToExchange();
@@ -2969,13 +3399,12 @@
 
     function autoSelectExchangeCards(player, count) {
       isProcessing = true;
-      // 弱いカードを自動選択
       const sortedHand = [...hands[player]].sort((a, b) => a.strength - b.strength);
       selectedIndices = [];
       for(let i=0; i<count; i++) {
         selectedIndices.push(hands[player].indexOf(sortedHand[i]));
       }
-      render(true); // 選択状態を反映
+      render(true);
       setTimeout(() => {
         isProcessing = false;
         confirmExchange();
@@ -3020,7 +3449,7 @@
       if (fugo && fugo !== 'player') {
         hands[fugo].sort((a, b) => a.strength - b.strength);
         hands[hinmin].push(...hands[fugo].splice(0, 1));
-        sortHand(hands[hinmin]);
+        sortHand(hands[fugo]);
         checkAndTriggerDialogue(fugo, 'EXCHANGE');
       }
 
@@ -3076,15 +3505,14 @@
 
     function setMessage(msg) { 
       let formattedMsg = msg.replace(/。/g, '。<br>');
-      if (formattedMsg.endsWith('<br>')) {
-        formattedMsg = formattedMsg.slice(0, -4);
-      }
+      if (formattedMsg.endsWith('<br>')) formattedMsg = formattedMsg.slice(0, -4);
       document.getElementById('message-text').innerHTML = formattedMsg; 
     }
 
     function updateStatusUI() {
       document.getElementById('revolution-status').classList.toggle('active', isRevolution);
       document.getElementById('eleven-back-status').classList.toggle('active', isElevenBack);
+      updateEvalMeterUI();
     }
 
     function getPlayStrength(cards) {
@@ -3117,7 +3545,6 @@
       const selectedStrength = getPlayStrength(cards);
       const topFieldStrength = getPlayStrength(fieldCards);
       
-      // ジョーカーのみの場合は革命・11バック状態に関わらず常に最強として出せる
       if (selectedStrength === 9999) return true;
 
       return effectiveReverse() ? selectedStrength < topFieldStrength : selectedStrength > topFieldStrength;
@@ -3130,7 +3557,7 @@
     }
 
     function toggleSelectCard(index) {
-      if (isAutoPlayMode) return; // 自動プレイ中は手動選択不可
+      if (isAutoPlayMode) return;
       if (isProcessing && !isExchangePhase) return;
       if (isPreExchangePhase) return;
       if (!isExchangePhase && PLAYERS[currentTurnIndex] !== 'player') return;
@@ -3379,7 +3806,6 @@
         }
         gameEnded = true; previousRanks = { ...playerStatusMap };
         
-        // 戦績の保存
         updateStatsOnGameEnd();
 
         render(false);
@@ -3387,7 +3813,6 @@
         renderFinalRanking();
         document.getElementById('next-game-modal').classList.add('active');
         
-        // 自動プレイ（観戦モード）の場合は5秒後に自動で次ゲームへ進む
         if (isAutoPlayMode) {
           setTimeout(() => {
             const modal = document.getElementById('next-game-modal');
@@ -3468,7 +3893,6 @@
       if (chosenMove) {
         const targetIndices = chosenMove.map(c => hands[cpu].indexOf(c));
         
-        // プレイヤーが自動プレイの場合、選択状態をUIに反映して少し待つ
         if (cpu === 'player') {
           selectedIndices = targetIndices;
           render(true);
@@ -3617,6 +4041,7 @@
       fieldCards.forEach(card => fieldCardsEl.appendChild(createCardElement(card)));
 
       updateControlsOnly();
+      updateEvalMeterUI();
 
       PLAYERS.forEach(p => {
         const areaEl = document.getElementById(p === 'player' ? 'player-area' : p);
@@ -3663,7 +4088,7 @@
       if (isPreExchangePhase) {
         playBtn.style.display = 'none'; passBtn.style.display = 'none';
         goExchangeBtn.style.display = 'flex'; exchangeBtn.style.display = 'none';
-        goExchangeBtn.disabled = isAutoPlayMode; // 自動進行中は押せないようにする
+        goExchangeBtn.disabled = isAutoPlayMode;
       } else if (isExchangePhase) {
         playBtn.style.display = 'none'; passBtn.style.display = 'none';
         goExchangeBtn.style.display = 'none'; exchangeBtn.style.display = 'flex';
@@ -3700,14 +4125,11 @@
       }
     });
 
-    // 音声ON/OFFトグル
     document.getElementById('sound-toggle-btn').addEventListener('click', (e) => {
       isSoundMuted = !isSoundMuted;
       e.target.textContent = isSoundMuted ? '🔇 音声: OFF' : '🔊 音声: ON';
       bgmMgr.audio.muted = isSoundMuted;
-      if (!isSoundMuted) {
-        soundMgr.playSelect();
-      }
+      if (!isSoundMuted) soundMgr.playSelect();
     });
 
     document.getElementById('modal-close-btn').addEventListener('click', closeRuleModal);
@@ -3716,6 +4138,36 @@
     document.getElementById('char-help-btn').addEventListener('click', openCharModal);
     document.getElementById('modal-char-close-btn').addEventListener('click', closeCharModal);
     document.getElementById('modal-char-close-x').addEventListener('click', closeCharModal);
+
+    // 戦況グラフモーダル
+    document.getElementById('eval-meter-btn').addEventListener('click', () => {
+      if (!isSoundMuted) soundMgr.playSelect();
+      showEvalModal();
+    });
+    document.getElementById('modal-eval-close-btn').addEventListener('click', () => {
+      if (!isSoundMuted) soundMgr.playDeselect();
+      document.getElementById('eval-modal').classList.remove('active');
+    });
+    document.getElementById('modal-eval-close-x').addEventListener('click', () => {
+      if (!isSoundMuted) soundMgr.playDeselect();
+      document.getElementById('eval-modal').classList.remove('active');
+    });
+
+    // 戦績・ランキングタブ切り替え
+    document.getElementById('tab-all-ranking-btn').addEventListener('click', () => {
+      if (!isSoundMuted) soundMgr.playSelect();
+      currentStatsTab = 'all';
+      document.getElementById('tab-all-ranking-btn').classList.add('active');
+      document.getElementById('tab-my-stats-btn').classList.remove('active');
+      renderRankingModalContent();
+    });
+    document.getElementById('tab-my-stats-btn').addEventListener('click', () => {
+      if (!isSoundMuted) soundMgr.playSelect();
+      currentStatsTab = 'my';
+      document.getElementById('tab-my-stats-btn').classList.add('active');
+      document.getElementById('tab-all-ranking-btn').classList.remove('active');
+      renderRankingModalContent();
+    });
 
     document.getElementById('btn-keep-char').addEventListener('click', () => {
       if (!isSoundMuted) soundMgr.playSelect();
@@ -3753,19 +4205,15 @@
       document.getElementById('stats-modal').classList.remove('active');
     });
     
-    // 戦績クリアボタン
     document.getElementById('modal-stats-clear-btn').addEventListener('click', () => {
-      if (confirm('現在のキャラクターの戦績をリセットしますか？')) {
+      if (confirm('すべての対戦記録・キャラクターランキングを初期化しますか？')) {
         if (!isSoundMuted) soundMgr.playSelect();
-        const charId = assignedCharacters.player.id;
-        const allStats = loadStats();
-        delete allStats[charId];
-        saveStats(allStats);
-        showStatsModal(); // 再描画
+        localStorage.removeItem('royalCardGameStats');
+        localStorage.removeItem('royalAllCharStats');
+        renderRankingModalContent();
       }
     });
 
-    // 倍速ボタンの処理
     document.querySelectorAll('.btn-speed').forEach(btn => {
       btn.addEventListener('click', (e) => {
         if (!isSoundMuted) soundMgr.playSelect();
@@ -3775,7 +4223,6 @@
       });
     });
 
-    // 自動プレイボタンのトグル処理
     document.getElementById('auto-play-btn').addEventListener('click', () => {
       if (!isSoundMuted) soundMgr.playSelect();
       isAutoPlayMode = !isAutoPlayMode;
@@ -3783,7 +4230,6 @@
       autoBtn.textContent = isAutoPlayMode ? '自動プレイ: ON' : '自動プレイ: OFF';
       autoBtn.classList.toggle('btn-gold', isAutoPlayMode);
       
-      // 倍速コントロールの表示切替
       const speedControls = document.getElementById('speed-controls');
       if (isAutoPlayMode) {
         speedControls.style.display = 'flex';
@@ -3797,7 +4243,6 @@
       
       updateControlsOnly();
 
-      // 自分のターンで待機中なら自動プレイを発動
       if (isAutoPlayMode) {
         if (PLAYERS[currentTurnIndex] === 'player' && !isProcessing && !isExchangePhase && !isPreExchangePhase && !gameEnded) {
           checkTurn();
