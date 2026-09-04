@@ -1,4 +1,4 @@
-/* [JS Version: v1.0.0] 最終更新: 更新履歴モーダル連携・バージョン表示イベントの実装 */
+/* [JS Version: v1.0.1] 最終更新: 手札カード重なり計算ロジック是正・バージョンv1.0.1更新 */
 
 /* ====================================================================
  * ROYAL DAIFUGO - 完全統合・リファクタリング版 (app.js)
@@ -1385,6 +1385,7 @@ function renderCpuStack(cpuId, count) {
   }
 }
 
+// 修正点: 手札の重なり計算を完全是正（枚数が減った時は綺麗な固定ピッチを維持）
 function updateHandOverlap() {
   const handEl = document.getElementById('player-hand');
   if (!handEl) return;
@@ -1402,15 +1403,18 @@ function updateHandOverlap() {
   const paddingX = parseFloat(cs.paddingLeft || 0) + parseFloat(cs.paddingRight || 0);
   const containerW = handEl.clientWidth - paddingX;
 
-  const defaultOverlap = cardWidth * -0.38;
-  const totalWWithDefault = cardWidth + (n - 1) * (cardWidth + defaultOverlap);
+  // 基準となる標準固定ピッチ（カード幅の約-35%：左側のスート・数字が綺麗に見える幅）
+  const standardOverlap = cardWidth * -0.35;
+  const totalWidthWithStandard = cardWidth + (n - 1) * (cardWidth + standardOverlap);
 
-  if (totalWWithDefault <= containerW) {
-    handEl.style.setProperty('--hand-overlap', `${defaultOverlap}px`);
+  // コンテナ幅に収まる（枚数が減った時など）は、常に標準の固定ピッチを維持
+  if (totalWidthWithStandard <= containerW) {
+    handEl.style.setProperty('--hand-overlap', `${standardOverlap}px`);
   } else {
-    let needed = (containerW - cardWidth) / (n - 1) - cardWidth;
-    const minOverlap = (cardWidth * 0.15) - cardWidth;
-    handEl.style.setProperty('--hand-overlap', `${Math.max(needed, minOverlap)}px`);
+    // 枚数が多く（13〜14枚等）、画面幅を超える場合のみ収まるよう均等に圧縮
+    const needed = (containerW - cardWidth) / (n - 1) - cardWidth;
+    const maxCompress = (cardWidth * 0.15) - cardWidth; // 最小露出15%
+    handEl.style.setProperty('--hand-overlap', `${Math.max(needed, maxCompress)}px`);
   }
 }
 
@@ -2400,7 +2404,6 @@ function initEvents() {
   const versionModal = document.getElementById('version-modal');
   const versionBadge = document.getElementById('version-badge');
 
-  // バージョンバッジ連携
   if (versionBadge && typeof APP_VERSION !== 'undefined') {
     versionBadge.textContent = APP_VERSION;
     versionBadge.onclick = () => {
