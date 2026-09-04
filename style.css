@@ -1,3 +1,5 @@
+/* [CSS Version: v1.0.0] 最終更新: バージョン表示バッジ・更新履歴モーダル用スタイルの追加 */
+
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+JP:wght@400;600&display=swap');
 
 :root {
@@ -297,11 +299,14 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
 /* プレイヤー・CPU2の名前と階級バッジの横並び */
 .player-name-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   margin-top: 2px;
   margin-bottom: 2px;
+  max-width: 100%;
+  flex-wrap: nowrap;
 }
 
 .turn-badge-container { height: clamp(18px, 2.5vh, 26px); display: flex; align-items: center; justify-content: center; margin-bottom: 1px; }
@@ -516,7 +521,19 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
 
 #player-area.active-turn .your-turn-badge { visibility: visible; opacity: 1; }
 
-#player-hand { display: flex; justify-content: center; align-items: center; height: calc(var(--card-height) + 30px); margin-bottom: 2px; max-width: 100%; padding: 0 4px; position: relative; }
+/* プレイヤー手札コンテナ */
+#player-hand { 
+  display: flex; 
+  justify-content: center; 
+  align-items: flex-end; 
+  height: calc(var(--card-height) + 26px); 
+  margin-bottom: 0px; 
+  max-width: 100%; 
+  padding: 0 4px; 
+  position: relative; 
+  flex-wrap: nowrap; 
+  overflow: visible; 
+}
 
 .card {
   width: var(--card-width); height: var(--card-height);
@@ -528,7 +545,6 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
   position: relative; flex-shrink: 0;
 }
 
-#player-hand { flex-wrap: nowrap; overflow: visible; }
 #player-hand .card { cursor: pointer; margin-left: var(--hand-overlap, var(--card-overlap)); }
 #player-hand .card.draw-anim { animation: drawCard 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 #player-hand .card:first-child { margin-left: 0; }
@@ -583,7 +599,7 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
   overflow: visible;
 }
 
-/* PC（幅769px以上）：CPU1, CPU3もCPU2と同様に重なりを緩やかに並べる */
+/* PC（幅769px以上） */
 @media (min-width: 769px) {
   #cpu1 .cpu-card-stack .card-back, #cpu3 .cpu-card-stack .card-back {
     margin-left: calc(var(--card-overlap) * 0.65);
@@ -593,7 +609,7 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
   }
 }
 
-/* モバイル・狭画面時：見切れ防止のため重なりとサイズを調整 */
+/* モバイル・狭画面時 */
 @media (max-width: 768px) {
   #cpu1 .cpu-card-stack .card-back, #cpu3 .cpu-card-stack .card-back {
     margin-left: calc(var(--card-width) * -0.5);
@@ -608,6 +624,13 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
     width: calc(var(--card-width) * 0.55);
     height: calc(var(--card-height) * 0.55);
     margin-left: calc(var(--card-width) * -0.42);
+  }
+  .char-badge {
+    font-size: 11px !important;
+    padding: 1px 4px !important;
+  }
+  .rank-badge {
+    font-size: 12px !important;
   }
 }
 
@@ -715,7 +738,93 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
   white-space: nowrap;
 }
 
-.pass-count { font-size: clamp(9px, 1.4vh, 11px); color: #8c9ba5; margin-top: 1px; line-height: 1; }
+.pass-count { 
+  font-size: clamp(10px, 1.5vh, 12px); 
+  color: #8c9ba5; 
+  margin-top: 2px; 
+  line-height: 1.2; 
+  text-align: center;
+}
+
+#player-area .pass-count {
+  margin-top: 3px;
+  margin-bottom: 2px;
+}
+
+/* 画面右下の控えめなバージョンバッジ */
+#version-badge {
+  position: fixed;
+  bottom: 3px;
+  right: 6px;
+  font-size: 10px;
+  font-family: 'Cinzel', serif;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  z-index: 120;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+#version-badge:hover {
+  color: #d4af37;
+  text-decoration: underline;
+}
+
+/* 更新履歴タイムラインのスタイル */
+.version-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.version-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 4px;
+}
+.version-tag {
+  font-family: 'Cinzel', serif;
+  font-weight: bold;
+  color: #fff3a8;
+  font-size: 13px;
+}
+.version-date {
+  font-size: 11px;
+  color: #8c9ba5;
+}
+.version-title {
+  font-weight: 600;
+  color: #d4af37;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.version-changes {
+  list-style: none;
+  padding-left: 0;
+  font-size: 11px;
+  color: #c0c8d0;
+  line-height: 1.5;
+}
+.version-changes li {
+  position: relative;
+  padding-left: 12px;
+  margin-bottom: 2px;
+}
+.version-changes li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #d4af37;
+}
+.version-files {
+  margin-top: 6px;
+  font-size: 10px;
+  color: #7b8893;
+}
 
 .char-select-overlay {
   position: fixed; inset: 0; z-index: 2000;

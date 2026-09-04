@@ -1,3 +1,5 @@
+/* [JS Version: v1.0.0] 最終更新: 更新履歴モーダル連携・バージョン表示イベントの実装 */
+
 /* ====================================================================
  * ROYAL DAIFUGO - 完全統合・リファクタリング版 (app.js)
  * ==================================================================== */
@@ -561,24 +563,19 @@ function getPlayStrength(cards, reverse = false) {
 function isValidPlay(cards, currentField, reverse = false) {
   if (!cards || cards.length === 0) return false;
 
-  // スペードの3返し判定
   if (currentField.length === 1 && currentField[0].isJoker &&
       cards.length === 1 && !cards[0].isJoker &&
       cards[0].suitSymbol === '♠' && cards[0].display === '3') {
     return true;
   }
 
-  // 複数枚出しの場合、すべて同じ数字か（ジョーカーはワイルドカード扱い）
   const nonJoker = cards.filter(c => !c.isJoker);
   if (nonJoker.length > 0) {
     const targetDisp = nonJoker[0].display;
     if (!nonJoker.every(c => c.display === targetDisp)) return false;
   }
 
-  // 場が空の場合
   if (currentField.length === 0) return true;
-
-  // 枚数一致の確認
   if (cards.length !== currentField.length) return false;
   if (currentField.length === 1 && currentField[0].isJoker) return false;
 
@@ -1373,7 +1370,6 @@ function createCardElement(card) {
   return el;
 }
 
-// PC環境ではCPU1, CPU3もCPU2と同様に上限なく全枚数表示
 function renderCpuStack(cpuId, count) {
   const stack = document.getElementById(`${cpuId}-stack`);
   if (!stack) return;
@@ -1405,16 +1401,17 @@ function updateHandOverlap() {
   const cs = getComputedStyle(handEl);
   const paddingX = parseFloat(cs.paddingLeft || 0) + parseFloat(cs.paddingRight || 0);
   const containerW = handEl.clientWidth - paddingX;
-  const defTotal = cardWidth + (n - 1) * (cardWidth - 28);
 
-  if (defTotal <= containerW) {
-    handEl.style.removeProperty('--hand-overlap');
-    return;
+  const defaultOverlap = cardWidth * -0.38;
+  const totalWWithDefault = cardWidth + (n - 1) * (cardWidth + defaultOverlap);
+
+  if (totalWWithDefault <= containerW) {
+    handEl.style.setProperty('--hand-overlap', `${defaultOverlap}px`);
+  } else {
+    let needed = (containerW - cardWidth) / (n - 1) - cardWidth;
+    const minOverlap = (cardWidth * 0.15) - cardWidth;
+    handEl.style.setProperty('--hand-overlap', `${Math.max(needed, minOverlap)}px`);
   }
-
-  let needed = (containerW - cardWidth) / (n - 1) - cardWidth;
-  const minOverlap = (cardWidth * 0.18) - cardWidth;
-  handEl.style.setProperty('--hand-overlap', `${Math.max(needed, minOverlap)}px`);
 }
 
 function updateFieldOverlap() {
@@ -2130,6 +2127,36 @@ function cpuPlayTurn(cpu) {
 /* ----------------------------------------------------
  * 10. モーダル・初期化・イベントリスナー
  * ---------------------------------------------------- */
+function renderVersionHistoryModal() {
+  const body = document.getElementById('version-modal-body');
+  if (!body) return;
+
+  const list = (typeof VERSION_HISTORY !== 'undefined') ? VERSION_HISTORY : [];
+  if (list.length === 0) {
+    body.innerHTML = '<p style="color:#8c9ba5;">更新履歴はありません。</p>';
+    return;
+  }
+
+  let html = '';
+  list.forEach(item => {
+    html += `
+      <div class="version-card">
+        <div class="version-header">
+          <span class="version-tag">${item.ver}</span>
+          <span class="version-date">${item.date}</span>
+        </div>
+        <div class="version-title">${item.title || '更新情報'}</div>
+        <ul class="version-changes">
+          ${item.changes.map(c => `<li>${c}</li>`).join('')}
+        </ul>
+        <div class="version-files">対象ファイル: ${item.files.join(', ')}</div>
+      </div>
+    `;
+  });
+
+  body.innerHTML = html;
+}
+
 function pickRandomCPUCharacters() {
   const keys = Object.keys(CHARACTER_DEFS).filter(k => !assignedCharacters.player || k !== assignedCharacters.player.id);
   const shuffled = shuffle(keys);
@@ -2370,6 +2397,27 @@ function initEvents() {
   const statsModal = document.getElementById('stats-modal');
   const evalModal = document.getElementById('eval-modal');
   const nextGameModal = document.getElementById('next-game-modal');
+  const versionModal = document.getElementById('version-modal');
+  const versionBadge = document.getElementById('version-badge');
+
+  // バージョンバッジ連携
+  if (versionBadge && typeof APP_VERSION !== 'undefined') {
+    versionBadge.textContent = APP_VERSION;
+    versionBadge.onclick = () => {
+      soundMgr.playSelect();
+      renderVersionHistoryModal();
+      versionModal.classList.add('active');
+    };
+  }
+
+  document.getElementById('modal-version-close-btn').onclick = () => {
+    soundMgr.playDeselect();
+    versionModal.classList.remove('active');
+  };
+  document.getElementById('modal-version-close-x').onclick = () => {
+    soundMgr.playDeselect();
+    versionModal.classList.remove('active');
+  };
 
   document.getElementById('rule-toggle-btn').onclick = () => {
     soundMgr.playSelect();
