@@ -294,7 +294,7 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
-/* プレイヤー名と階級バッジの横並び */
+/* プレイヤー・CPU2の名前と階級バッジの横並び */
 .player-name-row {
   display: flex;
   align-items: center;
@@ -570,18 +570,38 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
   box-shadow: 0 2px 4px rgba(0,0,0,0.4); transition: transform 0.2s ease; flex-shrink: 0;
 }
 
+/* CPUカードスタック表示 */
 .cpu-card-stack { display: flex; align-items: center; justify-content: center; margin: 1px 0; min-height: calc(var(--card-height) * 0.65); }
 #cpu2 .cpu-card-stack { display: flex; justify-content: center; width: 100%; }
 #cpu2 .cpu-card-stack .card-back { margin-left: calc(var(--card-overlap) * 0.65); }
 #cpu2 .cpu-card-stack .card-back:first-child { margin-left: 0; }
 
+/* CPU1, CPU3のカード表示 */
 #cpu1 .cpu-card-stack, #cpu3 .cpu-card-stack {
   width: 100%;
   max-width: 100%;
   overflow: visible;
 }
-#cpu1 .cpu-card-stack .card-back, #cpu3 .cpu-card-stack .card-back { margin-left: calc(var(--card-width) * -0.5); }
-#cpu1 .cpu-card-stack .card-back:first-child, #cpu3 .cpu-card-stack .card-back:first-child { margin-left: 0; }
+
+/* PC（幅769px以上）：CPU1, CPU3もCPU2と同様に重なりを緩やかに並べる */
+@media (min-width: 769px) {
+  #cpu1 .cpu-card-stack .card-back, #cpu3 .cpu-card-stack .card-back {
+    margin-left: calc(var(--card-overlap) * 0.65);
+  }
+  #cpu1 .cpu-card-stack .card-back:first-child, #cpu3 .cpu-card-stack .card-back:first-child {
+    margin-left: 0;
+  }
+}
+
+/* モバイル・狭画面時：見切れ防止のため重なりとサイズを調整 */
+@media (max-width: 768px) {
+  #cpu1 .cpu-card-stack .card-back, #cpu3 .cpu-card-stack .card-back {
+    margin-left: calc(var(--card-width) * -0.5);
+  }
+  #cpu1 .cpu-card-stack .card-back:first-child, #cpu3 .cpu-card-stack .card-back:first-child {
+    margin-left: 0;
+  }
+}
 
 @media (max-width: 600px) {
   #cpu1 .cpu-card-stack .card-back, #cpu3 .cpu-card-stack .card-back {
@@ -697,7 +717,6 @@ body { display: flex; flex-direction: column; justify-content: space-between; al
 
 .pass-count { font-size: clamp(9px, 1.4vh, 11px); color: #8c9ba5; margin-top: 1px; line-height: 1; }
 
-/* 修正点: キャラクター選択オーバーレイの z-index を最前面(2000)にし、カードの縦横比とクリックを完全保証 */
 .char-select-overlay {
   position: fixed; inset: 0; z-index: 2000;
   background: radial-gradient(circle at center, #1b2838 0%, #0d131d 100%);

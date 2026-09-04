@@ -1279,7 +1279,6 @@ function updateEvalMeterUI() {
   ).join('');
 }
 
-// 依頼4: セリフ表示と肖像拡大の完全同期
 function showCharacterDialogue(player, text) {
   if (!text || player === 'player') return;
   const box = document.getElementById(player);
@@ -1374,11 +1373,15 @@ function createCardElement(card) {
   return el;
 }
 
+// PC環境ではCPU1, CPU3もCPU2と同様に上限なく全枚数表示
 function renderCpuStack(cpuId, count) {
   const stack = document.getElementById(`${cpuId}-stack`);
   if (!stack) return;
   stack.innerHTML = '';
-  const displayCount = (cpuId === 'cpu2') ? count : Math.min(count, 7);
+  
+  const isPC = window.innerWidth >= 769;
+  const displayCount = (cpuId === 'cpu2' || isPC) ? count : Math.min(count, 7);
+
   for (let i = 0; i < displayCount; i++) {
     const back = document.createElement('div');
     back.className = 'card-back';
@@ -1414,7 +1417,6 @@ function updateHandOverlap() {
   handEl.style.setProperty('--hand-overlap', `${Math.max(needed, minOverlap)}px`);
 }
 
-// 依頼7: 5枚出し等で場の枠からはみ出ないよう自動で重なりを計算
 function updateFieldOverlap() {
   const container = document.getElementById('field-container-el');
   const fieldEl = document.getElementById('field-cards');
@@ -1511,12 +1513,10 @@ function animateCardMovement(player, indices, cardsToPlay, callback) {
   }, 350 / speed);
 }
 
-// 依頼5: 肖像の大きさを戻してから画面中央にWINNER肖像を表示
 function showVictoryPopup(player) {
   const def = assignedCharacters[player];
   if (!def) return;
 
-  // 拡大していた肖像を即座に通常サイズへ戻す
   PLAYERS.forEach(p => {
     const pt = document.getElementById(`${p}-portrait`);
     if (pt) pt.classList.remove('portrait-talk');
@@ -1545,7 +1545,7 @@ function render(isFullRedraw = false) {
     handEl.innerHTML = '';
     hands.player.forEach((card, index) => {
       const el = createCardElement(card);
-      el.style.zIndex = index + 1; // 依頼1: 常に元のスタック順序を保持
+      el.style.zIndex = index + 1;
       el.classList.add('draw-anim');
       if (selectedIndices.includes(index)) el.classList.add('selected');
       el.onclick = () => toggleSelectCardByCard(card);
@@ -1889,7 +1889,6 @@ function playerPlayCard() {
   });
 }
 
-// 依頼2: 選択したままパスした際に手札の選択状態を即座に解除
 function playerPass() {
   if (isProcessing || PLAYERS[currentTurnIndex] !== 'player') return;
   
@@ -2495,6 +2494,7 @@ function initEvents() {
     resizeTimer = setTimeout(() => {
       updateHandOverlap();
       updateFieldOverlap();
+      ['cpu1', 'cpu2', 'cpu3'].forEach(c => renderCpuStack(c, hands[c].length));
     }, 100);
   });
   window.addEventListener('orientationchange', () => {
@@ -2502,6 +2502,7 @@ function initEvents() {
     resizeTimer = setTimeout(() => {
       updateHandOverlap();
       updateFieldOverlap();
+      ['cpu1', 'cpu2', 'cpu3'].forEach(c => renderCpuStack(c, hands[c].length));
     }, 150);
   });
 }

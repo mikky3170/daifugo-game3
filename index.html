@@ -60,7 +60,7 @@
         </ul>
       </div>
 
-      <!-- 戦況メーター（依頼8: ルール解説等の下に配置・ひと回り大きく） -->
+      <!-- 戦況メーター -->
       <div class="eval-meter-container" id="eval-meter-btn" title="クリックで戦況グラフを表示">
         <div class="eval-meter-wrapper">
           <div class="eval-meter-label">勝利予想</div>
@@ -279,11 +279,14 @@
       </div>
       <div class="char-row">
         <img class="char-portrait" id="cpu2-portrait" src="" alt="">
-        <div class="char-badge" id="cpu2-char-title">---</div>
+        <!-- CPU2: キャラ名の右に階級バッジを表示 -->
+        <div class="player-name-row">
+          <div class="char-badge" id="cpu2-char-title">---</div>
+          <div class="rank-badge" id="cpu2-rank"></div>
+        </div>
       </div>
       <div class="cpu-card-stack" id="cpu2-stack"></div>
       <div class="pass-count"><span id="cpu2-pass-label">パス: </span><span id="cpu2-pass">0</span></div>
-      <div class="rank-badge" id="cpu2-rank"></div>
     </div>
 
     <!-- CPU 1 (左) -->
@@ -334,7 +337,6 @@
         <div class="your-turn-badge" id="player-badge">あなたの順番です</div>
       </div>
 
-      <!-- 依頼9: 肖像画の直下にキャラ名、その右隣に階級バッジを横並び配置 -->
       <div class="char-row">
         <img class="char-portrait" id="player-portrait" src="" alt="">
         <div class="player-name-row">
@@ -344,6 +346,7 @@
       </div>
 
       <div id="player-hand"></div>
+      <!-- プレイヤーのパス回数を手札のすぐ下に表示 -->
       <div class="pass-count"><span id="player-pass-label">パス: </span><span id="player-pass">0</span></div>
     </div>
   </div>
